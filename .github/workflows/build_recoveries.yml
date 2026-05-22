@@ -1,0 +1,661 @@
+name: Build Recoveries (Motorola g84 bangkk)
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      products:
+        description: 'Select products to build'
+        required: false
+        type: choice
+        options:
+          - 'All products'
+          - 'TWRP'
+          - 'PBRP'
+          - 'SHRP'
+          - 'OFOX'
+        default: 'All products'
+      clean_build:
+        description: 'Clean build'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  DEVICE_TREE_URL: https://github.com/humandroid-2002/device_motorola_bangkk_twrp.git
+  DEVICE_PATH: device/motorola/bangkk
+  DEVICE_NAME: bangkk
+
+  TWRP_MANIFEST: https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git
+  PBRP_MANIFEST: https://github.com/PitchBlackRecoveryProject/manifest_pb.git
+  SHRP_MANIFEST: https://github.com/SHRP-Reborn/manifest.git
+  ORANGEFOX_SYNC: https://gitlab.com/OrangeFox/sync.git
+
+jobs:
+  setup:
+    name: 🧩 Setup Build Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Set matrix
+        id: set-matrix
+        run: |
+          if [ "${{ github.event.inputs.products }}" == "All products" ]; then
+            echo 'matrix=["TWRP", "PBRP", "SHRP", "OFOX"]' >> $GITHUB_OUTPUT
+          else
+            echo 'matrix=["${{ github.event.inputs.products }}"]' >> $GITHUB_OUTPUT
+          fi
+
+  notify_workflow:
+    name: 📢 Notify Build Start
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram Notification
+        run: |
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -F chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -F message_thread_id="${{ secrets.TELEGRAM_MESSAGE_THREAD_ID }}" \
+            -F text="
+            🚀 Build started for Motorola bangkk!
+            📦 *Repository:* [${{ github.repository }}](https://github.com/${{ github.repository }})
+            🗂️ *Products:* ${{ github.event.inputs.products }}
+            🎯 *Device:* bangkk
+            ✏️ *Commit:* [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+            [🔗 View GitHub Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" \
+            -F parse_mode="Markdown"
+
+  build_twrp:
+    name: 💥 Build TWRP
+    needs: [setup, notify_workflow]
+    runs-on: ubuntu-latest
+    timeout-minutes: 480
+    if: ${{ contains(needs.setup.outputs.matrix, 'TWRP') }}
+
+    steps:
+      - name: Free up system space
+        uses: rokibhasansagar/slimhub_actions@main
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Configure swap space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 12
+
+      - name: Install repo tool
+        run: |
+          mkdir -p ~/bin
+          curl -o ~/bin/repo https://storage.googleapis.com/git-repo-downloads/repo
+          chmod +x ~/bin/repo
+          sudo ln -sf ~/bin/repo /usr/bin/repo
+
+      - name: Setup build environment
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y git aria2 ccache
+          git clone --depth=1 https://gitlab.com/OrangeFox/misc/scripts ~/scripts
+          cd ~/scripts
+          sudo bash setup/android_build_env.sh
+          sed -i 's/cd -/cd ../g' setup/install_android_sdk.sh
+          sudo bash setup/install_android_sdk.sh
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global color.ui true
+
+      - name: Make directories
+        run: |
+          mkdir -p $HOME/twrp-12.1
+          mkdir -p $HOME/files
+
+      - name: Initialize TWRP source
+        run: |
+          cd $HOME/twrp-12.1
+          repo init -u $TWRP_MANIFEST -b twrp-12.1 --depth=1
+
+      - name: Sync TWRP source
+        run: |
+          cd $HOME/twrp-12.1
+          repo sync -j$(nproc --all) --force-sync --no-tags --no-clone-bundle
+
+      - name: Clone device tree (bangkk)
+        run: |
+          cd $HOME/twrp-12.1
+          git clone --depth=1 --branch 12.1 $DEVICE_TREE_URL $DEVICE_PATH
+
+      - name: Setup ccache
+        if: github.event.inputs.clean_build != 'true'
+        run: |
+          export USE_CCACHE=1
+          export CCACHE_DIR=~/.ccache
+          ccache -M 8G
+          ccache -z
+
+      - name: Build TWRP bootimage
+        run: |
+          cd $HOME/twrp-12.1
+          export ALLOW_MISSING_DEPENDENCIES=true
+          source build/envsetup.sh
+          lunch twrp_bangkk-eng
+          if [[ "${{ github.event.inputs.clean_build }}" == "true" ]]; then
+            make clean
+          fi
+          mka bootimage -j$(nproc --all)
+
+      - name: Package TWRP boot.img
+        run: |
+          OUT=$HOME/twrp-12.1/out/target/product/$DEVICE_NAME
+          mkdir -p $HOME/files
+          cp "$OUT/boot.img" "$HOME/files/TWRP-${DEVICE_NAME}-boot-${{ github.run_id }}.img"
+
+      - name: Create GitHub Release (TWRP)
+        uses: softprops/action-gh-release@v2
+        with:
+          files: /home/runner/files/TWRP-*.img
+          name: "TWRP bangkk - ${{ github.run_id }}"
+          tag_name: "twrp-bangkk-${{ github.run_id }}"
+          body: |
+            ###📱 TWRP Recovery Build (bangkk)
+
+            ### ⚙️ Build Info
+            - Manifest Branch: `12.1`
+            - Device: `bangkk`
+            - Build Target: `bootimage`
+            - Device Tree: [`12.1`](${{ env.DEVICE_TREE_URL }})
+            - Build Date: ${{ github.event.head_commit.timestamp }}
+            - Workflow Run: [#${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            ### 📂 Output
+            - boot.img
+
+            ### ⚠️ Flash Instructions
+            1. ⚡ `fastboot boot boot.img`
+            2. 🔧 From Recovery Go to Advance Setting and Select Flash Current Recovery (REQUIRED!!!)
+            3. 🔁 Reboot to recovery (REQUIRED!!!)
+            4. ✅ Done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build_pbrp:
+    name: 💥 Build PBRP
+    needs: [setup, notify_workflow]
+    runs-on: ubuntu-latest
+    timeout-minutes: 480
+    if: ${{ contains(needs.setup.outputs.matrix, 'PBRP') }}
+
+    steps:
+      - name: Free up system space
+        uses: rokibhasansagar/slimhub_actions@main
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Configure swap space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 12
+
+      - name: Install repo tool
+        run: |
+          mkdir -p ~/bin
+          curl -o ~/bin/repo https://storage.googleapis.com/git-repo-downloads/repo
+          chmod +x ~/bin/repo
+          sudo ln -sf ~/bin/repo /usr/bin/repo
+
+      - name: Setup build environment
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y git aria2 ccache
+          git clone --depth=1 https://gitlab.com/OrangeFox/misc/scripts ~/scripts
+          cd ~/scripts
+          sudo bash setup/android_build_env.sh
+          sed -i 's/cd -/cd ../g' setup/install_android_sdk.sh
+          sudo bash setup/install_android_sdk.sh
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global color.ui true
+
+      - name: Make directories
+        run: |
+          mkdir -p $HOME/pbrp-12.1
+          mkdir -p $HOME/files
+
+      - name: Initialize PBRP source
+        run: |
+          cd $HOME/pbrp-12.1
+          repo init -u $PBRP_MANIFEST -b android-12.1 --depth=1
+
+      - name: Sync PBRP source
+        run: |
+          cd $HOME/pbrp-12.1
+          repo sync -c -j$(nproc --all) --force-sync --no-tags --no-clone-bundle
+
+      - name: Clone device tree (bangkk)
+        run: |
+          cd $HOME/pbrp-12.1
+          git clone --depth=1 --branch 12.1 $DEVICE_TREE_URL $DEVICE_PATH
+
+      - name: Setup ccache
+        if: github.event.inputs.clean_build != 'true'
+        run: |
+          export USE_CCACHE=1
+          export CCACHE_DIR=~/.ccache
+          ccache -M 8G
+          ccache -z
+
+      - name: Build PBRP bootimage
+        run: |
+          cd $HOME/pbrp-12.1
+          export ALLOW_MISSING_DEPENDENCIES=true
+          source build/envsetup.sh
+          lunch twrp_bangkk-eng
+          if [[ "${{ github.event.inputs.clean_build }}" == "true" ]]; then
+            make clean
+          fi
+          mka bootimage -j$(nproc --all)
+
+      - name: Package PBRP boot.img
+        run: |
+          OUT=$HOME/pbrp-12.1/out/target/product/$DEVICE_NAME
+          mkdir -p $HOME/files
+          cp "$OUT/boot.img" "$HOME/files/PBRP-${DEVICE_NAME}-boot-${{ github.run_id }}.img"
+
+      - name: Create GitHub Release (PBRP)
+        uses: softprops/action-gh-release@v2
+        with:
+          files: /home/runner/files/PBRP-*.img
+          name: "PBRP bangkk - ${{ github.run_id }}"
+          tag_name: "pbrp-bangkk-${{ github.run_id }}"
+          body: |
+            ###📱 PBRP Recovery Build (bangkk)
+
+            ### 📋 Build Information
+            - Manifest Branch: `12.1`
+            - Device: `bangkk`
+            - Build Target: `bootimage`
+            - Device Tree: [`12.1`](${{ env.DEVICE_TREE_URL }})
+            - Build Date: ${{ github.event.head_commit.timestamp }}
+            - Workflow Run: [#${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            ### 📂 Output
+            - boot.img
+
+            ### ⚠️ Flash Instructions
+            1. ⚡ `fastboot boot boot.img`
+            2. 🔧 From Recovery Go to Advance Setting and Select Flash Current Recovery (REQUIRED!!!)
+            3. 🔁 Reboot to recovery (REQUIRED!!!)
+            4. ✅ Done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build_shrp:
+    name: 💥 Build SHRP
+    needs: [setup, notify_workflow]
+    runs-on: ubuntu-latest
+    timeout-minutes: 480
+    if: ${{ contains(needs.setup.outputs.matrix, 'SHRP') }}
+
+    steps:
+      - name: Free up system space
+        uses: rokibhasansagar/slimhub_actions@main
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Configure swap space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 12
+
+      - name: Install repo tool
+        run: |
+          mkdir -p ~/bin
+          curl -o ~/bin/repo https://storage.googleapis.com/git-repo-downloads/repo
+          chmod +x ~/bin/repo
+          sudo ln -sf ~/bin/repo /usr/bin/repo
+
+      - name: Setup build environment
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y git aria2 ccache software-properties-common
+          git clone --depth=1 https://gitlab.com/OrangeFox/misc/scripts ~/scripts
+          cd ~/scripts
+          sudo bash setup/android_build_env.sh
+          sed -i 's/cd -/cd ../g' setup/install_android_sdk.sh
+          sudo bash setup/install_android_sdk.sh
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global color.ui true
+
+      - name: Make directories
+        run: |
+          mkdir -p $HOME/shrp-12.1
+          mkdir -p $HOME/files
+
+      - name: Initialize SHRP source
+        run: |
+          cd $HOME/shrp-12.1
+          repo init -u $SHRP_MANIFEST -b shrp-12.1 --depth=1
+
+      - name: Sync SHRP source
+        run: |
+          cd $HOME/shrp-12.1
+          repo sync -j$(nproc --all) --force-sync --no-tags --no-clone-bundle
+
+      - name: Clone device tree (bangkk)
+        run: |
+          cd $HOME/shrp-12.1
+          git clone --depth=1 --branch 12.1 $DEVICE_TREE_URL $DEVICE_PATH
+
+      - name: Setup ccache
+        if: github.event.inputs.clean_build != 'true'
+        run: |
+          export USE_CCACHE=1
+          export CCACHE_DIR=~/.ccache
+          ccache -M 8G
+          ccache -z
+
+      - name: Install Python 2.7 on ubuntu-latest
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential wget curl libssl-dev zlib1g-dev \
+            libbz2-dev libreadline-dev libsqlite3-dev libffi-dev
+
+          wget https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
+          tar -xvf Python-2.7.18.tgz
+          cd Python-2.7.18
+
+          ./configure --enable-optimizations
+          make -j$(nproc)
+          sudo make altinstall
+
+          sudo ln -sf /usr/local/bin/python2.7 /usr/bin/python2.7
+          sudo ln -sf /usr/local/bin/python2.7 /usr/bin/python2
+          python2.7 --version
+
+      - name: Build SHRP bootimage
+        run: |
+          cd $HOME/shrp-12.1
+          export ALLOW_MISSING_DEPENDENCIES=true
+          source build/envsetup.sh
+          lunch twrp_bangkk-eng
+          if [[ "${{ github.event.inputs.clean_build }}" == "true" ]]; then
+            make clean
+          fi
+          mka bootimage -j$(nproc --all)
+
+      - name: Package SHRP boot.img
+        run: |
+          OUT=$HOME/shrp-12.1/out/target/product/$DEVICE_NAME
+          mkdir -p $HOME/files
+          cp "$OUT/boot.img" "$HOME/files/SHRP-${DEVICE_NAME}-boot-${{ github.run_id }}.img"
+
+      - name: Create GitHub Release (SHRP)
+        uses: softprops/action-gh-release@v2
+        with:
+          files: /home/runner/files/SHRP-*.img
+          name: "SHRP bangkk - ${{ github.run_id }}"
+          tag_name: "shrp-bangkk-${{ github.run_id }}"
+          body: |
+            ###📱 SHRP Recovery Build (bangkk)
+
+            ### 📋 Build Information
+            - Manifest Branch: `12.1`
+            - Device: `bangkk`
+            - Build Target: `bootimage`
+            - Device Tree: [`12.1`](${{ env.DEVICE_TREE_URL }})
+            - Build Date: ${{ github.event.head_commit.timestamp }}
+            - Workflow Run: [#${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            ### 📂 Output
+            - boot.img
+
+            ### ⚠️ Flash Instructions
+            1. ⚡ `fastboot boot boot.img`
+            2. 🔧 From Recovery Go to Advance Setting and Select Flash Current Recovery (REQUIRED!!)
+            3. 🔁 Reboot to recovery (REQUIRED!!)
+            4. ✅ Done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build_ofox:
+    name: 💥 Build OFOX
+    needs: [setup, notify_workflow]
+    runs-on: ubuntu-latest
+    timeout-minutes: 480
+    if: ${{ contains(needs.setup.outputs.matrix, 'OFOX') }}
+
+    steps:
+      - name: Free up system space
+        uses: rokibhasansagar/slimhub_actions@main
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '11'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Configure swap space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 12
+
+      - name: Prepare build environment
+        run: |
+          sudo apt update && sudo apt upgrade -y
+          DEBIAN_FRONTEND=noninteractive sudo apt install -yq \
+              linux-modules-extra-$(uname -r) \
+              git python3 tar aria2
+          git clone https://gitlab.com/OrangeFox/misc/scripts
+          cd scripts
+          sudo bash setup/android_build_env.sh
+          sed -i 's/cd -/cd ../g' setup/install_android_sdk.sh
+          sudo bash setup/install_android_sdk.sh
+        working-directory: ${{ github.workspace }}
+
+      - name: Initialize workspace
+        run: |
+          mkdir workspace
+          cd workspace
+          echo "workspace-folder=$(pwd)" >> $GITHUB_OUTPUT
+        id: pwd
+
+      - name: Sync OrangeFox sources
+        run: |
+          cd ${{ steps.pwd.outputs.workspace-folder }}
+          git clone $ORANGEFOX_SYNC
+          cd sync
+          ./orangefox_sync.sh --branch 12.1 --path ${{ steps.pwd.outputs.workspace-folder }}/fox_12.1
+
+      - name: Clone device tree (bangkk)
+        run: |
+          cd ${{ steps.pwd.outputs.workspace-folder }}/fox_12.1
+          git clone $DEVICE_TREE_URL -b 12.1 ./$DEVICE_PATH
+
+      - name: Set Swap Space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 12
+
+      - name: Build OrangeFox bootimage
+        run: |
+          cd ${{ steps.pwd.outputs.workspace-folder }}/fox_12.1
+          set +e
+          source build/envsetup.sh
+          set -e
+          lunch twrp_bangkk-eng
+          mka bootimage -j$(nproc --all)
+
+      - name: Package OrangeFox boot.img
+        run: |
+          OUT=${{ steps.pwd.outputs.workspace-folder }}/fox_12.1/out/target/product/$DEVICE_NAME
+          mkdir -p $HOME/files
+          cp "$OUT/boot.img" "$HOME/files/OFOX-${DEVICE_NAME}-boot-${{ github.run_id }}.img"
+
+      - name: Upload to Release (OrangeFox)
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            /home/runner/files/OFOX-*.img
+          name: OrangeFox-${{ env.DEVICE_NAME }}-${{ github.run_id }}
+          tag_name: ofox-bangkk-${{ github.run_id }}
+          body: |
+            ###📱 OFOX Recovery Build (bangkk)
+
+            ### 📋 Build Information
+            - Manifest Branch: `12.1`
+            - Device: `bangkk`
+            - Build Target: `bootimage`
+            - Device Tree: [`12.1`](${{ env.DEVICE_TREE_URL }})
+            - Build Date: ${{ github.event.head_commit.timestamp }}
+            - Workflow Run: [#${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            ### 📂 Output
+            - boot.img
+
+            ### ⚠️ Flash Instructions
+            1. ⚡ `fastboot boot boot.img`
+            2. 🔧 From Recovery Go to Advance Setting and Select Flash Current Recovery (REQUIRED!!!)
+            3. 🔁 Reboot to recovery (REQUIRED!!!)
+            4. ✅ Done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify_completion:
+    name: ✅ Notify Build Completion
+    needs: [setup, build_twrp, build_pbrp, build_shrp, build_ofox]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Determine build results
+        id: results
+        run: |
+          success_count=0
+          failed_count=0
+          skipped_count=0
+          total_builds=0
+
+          matrix="${{ needs.setup.outputs.matrix }}"
+
+          if echo "$matrix" | grep -q "TWRP"; then
+            total_builds=$((total_builds + 1))
+            if [ "${{ needs.build_twrp.result }}" == "success" ]; then
+              success_count=$((success_count + 1))
+            elif [ "${{ needs.build_twrp.result }}" == "failure" ]; then
+              failed_count=$((failed_count + 1))
+            else
+              skipped_count=$((skipped_count + 1))
+            fi
+          fi
+
+          if echo "$matrix" | grep -q "PBRP"; then
+            total_builds=$((total_builds + 1))
+            if [ "${{ needs.build_pbrp.result }}" == "success" ]; then
+              success_count=$((success_count + 1))
+            elif [ "${{ needs.build_pbrp.result }}" == "failure" ]; then
+              failed_count=$((failed_count + 1))
+            else
+              skipped_count=$((skipped_count + 1))
+            fi
+          fi
+
+          if echo "$matrix" | grep -q "SHRP"; then
+            total_builds=$((total_builds + 1))
+            if [ "${{ needs.build_shrp.result }}" == "success" ]; then
+              success_count=$((success_count + 1))
+            elif [ "${{ needs.build_shrp.result }}" == "failure" ]; then
+              failed_count=$((failed_count + 1))
+            else
+              skipped_count=$((skipped_count + 1))
+            fi
+          fi
+
+          if echo "$matrix" | grep -q "OrangeFox"; then
+            total_builds=$((total_builds + 1))
+            if [ "${{ needs.build_ofox.result }}" == "success" ]; then
+              success_count=$((success_count + 1))
+            elif [ "${{ needs.build_ofox.result }}" == "failure" ]; then
+              failed_count=$((failed_count + 1))
+            else
+              skipped_count=$((skipped_count + 1))
+            fi
+          fi
+
+          echo "success_count=$success_count" >> $GITHUB_OUTPUT
+          echo "failed_count=$failed_count" >> $GITHUB_OUTPUT
+          echo "skipped_count=$skipped_count" >> $GITHUB_OUTPUT
+          echo "total_builds=$total_builds" >> $GITHUB_OUTPUT
+
+          if [ $failed_count -eq 0 ] && [ $success_count -gt 0 ]; then
+            echo "status=✅ All builds completed successfully!" >> $GITHUB_OUTPUT
+            echo "emoji=🎉" >> $GITHUB_OUTPUT
+          elif [ $success_count -gt 0 ] && [ $failed_count -gt 0 ]; then
+            echo "status=⚠️ Builds completed with some failures" >> $GITHUB_OUTPUT
+            echo "emoji=⚠️" >> $GITHUB_OUTPUT
+          elif [ $failed_count -gt 0 ]; then
+            echo "status=❌ All builds failed" >> $GITHUB_OUTPUT
+            echo "emoji=💥" >> $GITHUB_OUTPUT
+          else
+            echo "status=⏭️ All builds were skipped" >> $GITHUB_OUTPUT
+            echo "emoji=⏭️" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Telegram Completion Notification
+        run: |
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -F chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -F message_thread_id="${{ secrets.TELEGRAM_MESSAGE_THREAD_ID }}" \
+            -F text="
+            ${{ steps.results.outputs.emoji }} Build summary for Motorola bangkk
+            ✅ Success: ${{ steps.results.outputs.success_count }}
+            ❌ Failed: ${{ steps.results.outputs.failed_count }}
+            ⏭️ Skipped: ${{ steps.results.outputs.skipped_count }}
+            🔢 Total builds: ${{ steps.results.outputs.total_builds }}
+            📦 Products: ${{ github.event.inputs.products }}
+            " \
+            -F parse_mode="Markdown"

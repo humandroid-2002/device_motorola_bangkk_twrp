@@ -59,7 +59,7 @@ if [ "$FOX_BUILD_DEVICE" = "$FDEVICE" ]; then
 	export FOX_USE_BUSYBOX_BINARY=1
 	export FOX_USE_GREP_BINARY=1
 
-        # UI
+    # UI
 	export OF_SCREEN_H=2400
 	export OF_STATUS_H=108
 	export OF_STATUS_INDENT_LEFT=64
@@ -71,7 +71,6 @@ if [ "$FOX_BUILD_DEVICE" = "$FDEVICE" ]; then
 	export OF_DEFAULT_TIMEZONE=CET-1CEST,M3.5.0,M10.5.0/3
 
 	# Fox Settings
-	export OF_ENABLE_ALL_PARTITION_TOOLS=1
 	export OF_FLASHLIGHT_ENABLE=0
 	export ALLOW_MISSING_DEPENDENCIES=true
 	export FOX_SETTINGS_ROOT_DIRECTORY="/persist"

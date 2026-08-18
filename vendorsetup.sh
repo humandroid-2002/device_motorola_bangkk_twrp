@@ -59,7 +59,7 @@ if [ "$FOX_BUILD_DEVICE" = "$FDEVICE" ]; then
 	export FOX_USE_BUSYBOX_BINARY=1
 	export FOX_USE_GREP_BINARY=1
 
-    # UI
+	# UI
 	export OF_SCREEN_H=2400
 	export OF_STATUS_H=108
 	export OF_STATUS_INDENT_LEFT=64
@@ -74,13 +74,15 @@ if [ "$FOX_BUILD_DEVICE" = "$FDEVICE" ]; then
 	export OF_FLASHLIGHT_ENABLE=0
 	export ALLOW_MISSING_DEPENDENCIES=true
 	export FOX_SETTINGS_ROOT_DIRECTORY="/persist"
-	export FOX_MAINTAINER_PATCH_VERSION="1"
+	export OF_QUICK_BACKUP_LIST="/boot;/data;/dtbo;"
+
+	export FOX_MAINTAINER_PATCH_VERSION="2"
 	export FOX_ALLOW_EARLY_SETTINGS_LOAD=1
 	export FOX_RESET_SETTINGS="disabled"
 	export OF_FORCE_PREBUILT_KERNEL=1
 	export OF_ENABLE_FRP_ADDON=1
 	export FOX_BUILD_TYPE=Stable
-	export OF_MAINTAINER="@medusa659"
+	export OF_MAINTAINER="@medusa659||YamaMoto"
 else
 	echo "I: vendorsetup.sh skipped; device mismatch or environment issue."
 fi

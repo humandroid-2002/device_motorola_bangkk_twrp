@@ -28,7 +28,12 @@
 import /init.recovery.qcom_decrypt.rc
 
 on early-init
+    write /sys/fs/selinux/enforce 0
     start set_permissive
+
+on early-fs
+    write /proc/sys/kernel/sched_lib_name "recovery,Updater,updater,update_engine_sideload"
+    write /proc/sys/kernel/sched_lib_mask_force 255
 
 on init
     write /sys/class/backlight/panel0-backlight/brightness 200
@@ -49,6 +54,7 @@ on fs
 
 on boot
     start health-hal-2-1
+    start runatboot
 
 service vendor.qti.vibrator /system/bin/vendor.qti.hardware.vibrator.service
     user root
@@ -58,9 +64,6 @@ service vendor.qti.vibrator /system/bin/vendor.qti.hardware.vibrator.service
 
 on post-fs
     start boot-hal-1-1
-
-on post-fs-data
-   start mount_vendor
 
 on property:twrp.modules.loaded=true
     # Load ADSP firmware for PMIC
@@ -75,7 +78,13 @@ service set_permissive /system/bin/set_permissive.sh
     oneshot
     seclabel u:r:recovery:s0
 
-service mount_vendor /system/bin/mount_vendor.sh
+service runatboot /system/bin/runatboot.sh
+    user root
+    group root
+    oneshot
+    seclabel u:r:recovery:s0
+
+service resize_vendor /system/bin/resize_vendor.sh
     user root
     group root
     oneshot

@@ -97,7 +97,7 @@ This device tree uses a prebuilt kernel extracted from:
 * [x] Flash ZIPs (Magisk, ROMs, kernels, modules, etc.)
 * [ ] ⚠️ Caution: You must use a properly made and compatible AnyKernel3.zip.  
       A broken or incompatible AnyKernel zip can cause bootloops.  
-      This is not a recovery issue. Do not flash AnyKernel zip files if you do not know what you are doing.
+      This is not a recovery issue.
 
 ### Data and encryption
 

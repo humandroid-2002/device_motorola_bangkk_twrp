@@ -41,24 +41,6 @@ if [ "$FOX_BUILD_DEVICE" = "$FDEVICE" ]; then
 # https://gitlab.com/OrangeFox/vendor/recovery/-/raw/fox_14.1/orangefox_build_vars.txt
 # https://gitlab.com/OrangeFox/bootable/Recovery/-/raw/fox_14.1/orangefox.mk
 
-	# A/B Partition
-	export FOX_VIRTUAL_AB_DEVICE=1
-	export FOX_RECOVERY_SYSTEM_PARTITION="/dev/block/mapper/system"
-	export FOX_RECOVERY_VENDOR_PARTITION="/dev/block/mapper/vendor"
-
-	# Compression Binaries & Tools
-	export FOX_USE_BASH_SHELL=1
-	export FOX_USE_NANO_EDITOR=1
-	export FOX_USE_TAR_BINARY=1
-	export FOX_USE_LZ4_BINARY=1
-	export FOX_USE_SED_BINARY=1
-	export FOX_USE_XZ_UTILS=1
-	export FOX_USE_ZSTD_BINARY=1
-	export FOX_DELETE_AROMAFM=0
-	export FOX_REMOVE_AAPT=1
-	export FOX_USE_BUSYBOX_BINARY=1
-	export FOX_USE_GREP_BINARY=1
-
 	# UI
 	export OF_SCREEN_H=2400
 	export OF_STATUS_H=108
@@ -74,7 +56,6 @@ if [ "$FOX_BUILD_DEVICE" = "$FDEVICE" ]; then
 	export OF_FLASHLIGHT_ENABLE=0
 	export ALLOW_MISSING_DEPENDENCIES=true
 	export FOX_SETTINGS_ROOT_DIRECTORY="/persist"
-	export OF_QUICK_BACKUP_LIST="/boot;/data;/dtbo;"
 
 	export FOX_MAINTAINER_PATCH_VERSION="2"
 	export FOX_ALLOW_EARLY_SETTINGS_LOAD=1

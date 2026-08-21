@@ -54,7 +54,6 @@ on fs
 
 on boot
     start health-hal-2-1
-    start runatboot
 
 service vendor.qti.vibrator /system/bin/vendor.qti.hardware.vibrator.service
     user root
@@ -64,6 +63,7 @@ service vendor.qti.vibrator /system/bin/vendor.qti.hardware.vibrator.service
 
 on post-fs
     start boot-hal-1-1
+    start resize
 
 on property:twrp.modules.loaded=true
     # Load ADSP firmware for PMIC
@@ -84,7 +84,7 @@ service runatboot /system/bin/runatboot.sh
     oneshot
     seclabel u:r:recovery:s0
 
-service resize_vendor /system/bin/resize_vendor.sh
+service resize /system/bin/resize.sh
     user root
     group root
     oneshot

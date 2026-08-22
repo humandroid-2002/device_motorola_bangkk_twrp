@@ -16,20 +16,7 @@ AB_OTA_PARTITIONS += \
     vendor \
     vendor_boot
 
-AB_OTA_POSTINSTALL_CONFIG += \
-    FILESYSTEM_TYPE_system=ext4 \
-    POSTINSTALL_OPTIONAL_system=true \
-    POSTINSTALL_PATH_system=system/bin/otapreopt_script \
-    RUN_POSTINSTALL_system=true
-
-AB_OTA_POSTINSTALL_CONFIG += \
-    FILESYSTEM_TYPE_vendor=ext4 \
-    POSTINSTALL_OPTIONAL_vendor=true \
-    POSTINSTALL_PATH_vendor=bin/checkpoint_gc \
-    RUN_POSTINSTALL_vendor=true
-
 AB_OTA_UPDATER := true
-TARGET_ENFORCE_AB_OTA_PARTITION_LIST := true
 
 # Boot Control / Fastboot
 PRODUCT_PACKAGES += \
@@ -62,16 +49,6 @@ PRODUCT_PACKAGES += \
 # Keystore2
 PRODUCT_PACKAGES += \
     android.system.keystore2
-
-# Update Engine
-PRODUCT_PACKAGES += \
-    checkpoint_gc \
-    otapreopt_script
-
-PRODUCT_PACKAGES += \
-    update_engine \
-    update_engine_sideload \
-    update_verifier
 
 # Shipping / VNDK
 PRODUCT_SHIPPING_API_LEVEL := 30

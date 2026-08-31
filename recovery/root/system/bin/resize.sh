@@ -312,8 +312,19 @@ FREE_BLOCKS=$(echo "$EXT4_INFO" | \
 case "$MAGIC" in
     0xEF53)
         ;;
-    *)
-        error "vendor non sembra essere EXT4. Magic rilevato: $MAGIC"
+        *)
+        echo "Vendor EROFS detected"
+
+        echo "========================================" >> /tmp/erofs-debug.log
+        echo "[$(date)] RESIZE -> STARTING RO2RW" >> /tmp/erofs-debug.log
+
+        /system/bin/erofs.sh >> /tmp/erofs-debug.log 2>&1
+        EROFS_RC=$?
+
+        echo "[$(date)] RO2RW FINISHED rc=$EROFS_RC" >> /tmp/erofs-debug.log
+        echo "========================================" >> /tmp/erofs-debug.log
+
+        exit $EROFS_RC
         ;;
 esac
 

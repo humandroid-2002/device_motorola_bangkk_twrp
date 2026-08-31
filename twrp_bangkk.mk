@@ -18,6 +18,8 @@ endif
 # Device
 $(call inherit-product, device/motorola/bangkk/device.mk)
 
+$(call inherit-product, device/motorola/bangkk/fox.mk)
+
 # TWRP Common
 $(call inherit-product, vendor/twrp/config/common.mk)
 

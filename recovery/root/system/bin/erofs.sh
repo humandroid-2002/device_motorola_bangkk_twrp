@@ -14,19 +14,46 @@ echo "Waiting for /data..." >> "$DEBUG"
 
 DATA_READY=false
 
-for i in $(seq 1 30); do
+for i in $(seq 1 60); do
     if mountpoint -q /data; then
-        DATA_READY=true
-        echo "/data mounted after ${i}s" >> "$DEBUG"
-        break
+
+        TEST_DIR=/data/local/tmp
+
+        if [ -d "$TEST_DIR" ] && [ -w "$TEST_DIR" ]; then
+            DATA_READY=true
+            echo "/data ready after ${i}s" >> "$DEBUG"
+            break
+        fi
+
+        # Test reale di scrittura
+        if mkdir -p /data/local/tmp/.ro2rw_test 2>/dev/null; then
+            rmdir /data/local/tmp/.ro2rw_test 2>/dev/null
+            DATA_READY=true
+            echo "/data writable after ${i}s" >> "$DEBUG"
+            break
+        fi
     fi
 
     sleep 1
 done
 
 if [ "$DATA_READY" != "true" ]; then
-    echo "ERROR: /data not mounted" >> "$DEBUG"
+    echo "ERROR: /data not ready or not writable" >> "$DEBUG"
     exit 75
+fi
+
+# Wait for Focaltech touchscreen module
+for i in $(seq 1 30); do
+    if grep -q '^focaltech_v3 ' /proc/modules; then
+        break
+    fi
+
+    sleep 1
+done
+
+# Temporarily disable touchscreen
+if grep -q '^focaltech_v3 ' /proc/modules; then
+    rmmod focaltech_v3 2>/dev/null
 fi
 
 TMP_NEO=/data/local/tmp/RO2RW_RECOVERY
@@ -34,8 +61,18 @@ TMP_IMGS=$TMP_NEO/imgs
 NEO_LOGS=/tmp/NEO.LOGS
 OUT_SUPER_DIR=/data/media/0/RO2RW_SUPER
 
-mkdir -p "$TMP_NEO" "$TMP_IMGS" "$NEO_LOGS" || {
-    echo "ERROR: cannot create RO2RW directories" >> "$DEBUG"
+mkdir -p "$TMP_NEO" || {
+    echo "ERROR: cannot create $TMP_NEO" >> "$DEBUG"
+    exit 75
+}
+
+mkdir -p "$TMP_IMGS" || {
+    echo "ERROR: cannot create $TMP_IMGS" >> "$DEBUG"
+    exit 75
+}
+
+mkdir -p "$NEO_LOGS" || {
+    echo "ERROR: cannot create $NEO_LOGS" >> "$DEBUG"
     exit 75
 }
 
@@ -1788,6 +1825,18 @@ $terminal_on && {
     avbctl --force disable-verification &>>$LOG
     avbctl --force disable-verity &>>$LOG
 }
+
+# Restore touchscreen
+if ! grep -q '^focaltech_v3 ' /proc/modules; then
+    insmod /vendor/lib/modules/1.1/focaltech_v3.ko 2>/dev/null
+fi
+
+sleep 1
+
+if [ -d /sys/bus/spi/drivers/fts_ts ]; then
+    echo spi0.1 > /sys/bus/spi/drivers/fts_ts/bind 2>/dev/null
+fi
+
 $terminal_on || {
     my_print "If you see \"Failed to mount /part (Invalid-argument)\" then this is normal, you need to restart recovery so that the partitions are defined correctly"
 }

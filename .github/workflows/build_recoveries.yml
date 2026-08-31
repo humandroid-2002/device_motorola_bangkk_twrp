@@ -83,13 +83,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Java JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -180,14 +180,25 @@ jobs:
             - Build Date: ${{ github.event.head_commit.timestamp }}
             - Workflow Run: [#${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
+            ### 🆕 New Features
+            - **Added AnyKernel support** for both **AOSP** and **StockOS**
+            - Fully compatible with **EROFS** and **EXT4** partitions
+
+            ### ⚠️ Important Note for EROFS Users
+            On EROFS-based ROMs, **Only first boot after fastboot boot TouchScreen are intentionally Disabled for 40 sec**.  
+            During this process, the recovery performs the **EROFS to EXT4 conversion, partition resize, and partition table update**.  
+            The **Focaltech touchscreen is temporarily disabled** during this process and will be restored automatically when it finishes.  
+            **Please wait until the process finishes (40sec). Do not force reboot or interrupt the recovery —** — the recovery Thouch Screen is *not* Broke.  
+
             ### 📂 Output
             - boot.img
 
-            ### ⚠️ Flash Instructions
+            ### Flash Instructions
             1. ⚡ `fastboot boot boot.img`
             2. 🔧 From Recovery Go to Advance Setting and Select Flash Current Recovery (REQUIRED!!!)
             3. 🔁 Reboot to recovery (REQUIRED!!!)
-            4. ✅ Done
+            4. ⏳ On EROFS ROMs, wait for the automatic conversion process to complete
+            5. ✅ Done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -206,13 +217,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Java JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -303,14 +314,25 @@ jobs:
             - Build Date: ${{ github.event.head_commit.timestamp }}
             - Workflow Run: [#${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
+            ### 🆕 New Features
+            - **Added AnyKernel support** for both **AOSP** and **StockOS**
+            - Fully compatible with **EROFS** and **EXT4** partitions
+
+            ### ⚠️ Important Note for EROFS Users
+            On EROFS-based ROMs, **Only first boot after fastboot boot TouchScreen are intentionally Disabled for 40 sec**.  
+            During this process, the recovery performs the **EROFS to EXT4 conversion, partition resize, and partition table update**.  
+            The **Focaltech touchscreen is temporarily disabled** during this process and will be restored automatically when it finishes.  
+            **Please wait until the process finishes (40sec). Do not force reboot or interrupt the recovery —** — the recovery Thouch Screen is *not* Broke.  
+
             ### 📂 Output
             - boot.img
 
-            ### ⚠️ Flash Instructions
+            ### Flash Instructions
             1. ⚡ `fastboot boot boot.img`
             2. 🔧 From Recovery Go to Advance Setting and Select Flash Current Recovery (REQUIRED!!!)
             3. 🔁 Reboot to recovery (REQUIRED!!!)
-            4. ✅ Done
+            4. ⏳ On EROFS ROMs, wait for the automatic conversion process to complete
+            5. ✅ Done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -329,13 +351,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Java JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -444,14 +466,25 @@ jobs:
             - Build Date: ${{ github.event.head_commit.timestamp }}
             - Workflow Run: [#${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
+            ### 🆕 New Features
+            - **Added AnyKernel support** for both **AOSP** and **StockOS**
+            - Fully compatible with **EROFS** and **EXT4** partitions
+
+            ### ⚠️ Important Note for EROFS Users
+            On EROFS-based ROMs, **Only first boot after fastboot boot TouchScreen are intentionally Disabled for 40 sec**.  
+            During this process, the recovery performs the **EROFS to EXT4 conversion, partition resize, and partition table update**.  
+            The **Focaltech touchscreen is temporarily disabled** during this process and will be restored automatically when it finishes.  
+            **Please wait until the process finishes (40sec). Do not force reboot or interrupt the recovery —** — the recovery Thouch Screen is *not* Broke.  
+
             ### 📂 Output
             - boot.img
 
-            ### ⚠️ Flash Instructions
+            ### Flash Instructions
             1. ⚡ `fastboot boot boot.img`
-            2. 🔧 From Recovery Go to Advance Setting and Select Flash Current Recovery (REQUIRED!!)
-            3. 🔁 Reboot to recovery (REQUIRED!!)
-            4. ✅ Done
+            2. 🔧 From Recovery Go to Advance Setting and Select Flash Current Recovery (REQUIRED!!!)
+            3. 🔁 Reboot to recovery (REQUIRED!!!)
+            4. ⏳ On EROFS ROMs, wait for the automatic conversion process to complete
+            5. ✅ Done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -470,13 +503,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Java JDK 11
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
           java-version: '11'
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -555,14 +588,25 @@ jobs:
             - Build Date: ${{ github.event.head_commit.timestamp }}
             - Workflow Run: [#${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
+            ### 🆕 New Features
+            - **Added AnyKernel support** for both **AOSP** and **StockOS**
+            - Fully compatible with **EROFS** and **EXT4** partitions
+
+            ### ⚠️ Important Note for EROFS Users
+            On EROFS-based ROMs, **Only first boot after fastboot boot TouchScreen are intentionally Disabled for 40 sec**.  
+            During this process, the recovery performs the **EROFS to EXT4 conversion, partition resize, and partition table update**.  
+            The **Focaltech touchscreen is temporarily disabled** during this process and will be restored automatically when it finishes.  
+            **Please wait until the process finishes (40sec). Do not force reboot or interrupt the recovery —** — the recovery Thouch Screen is *not* Broke.  
+
             ### 📂 Output
             - boot.img
 
-            ### ⚠️ Flash Instructions
+            ### Flash Instructions
             1. ⚡ `fastboot boot boot.img`
             2. 🔧 From Recovery Go to Advance Setting and Select Flash Current Recovery (REQUIRED!!!)
             3. 🔁 Reboot to recovery (REQUIRED!!!)
-            4. ✅ Done
+            4. ⏳ On EROFS ROMs, wait for the automatic conversion process to complete
+            5. ✅ Done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

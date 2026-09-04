@@ -33,7 +33,7 @@ exec > "$FIFO" 2>&1
 #   final verification
 ###############################################################################
 
-ADD=41943040
+ADD=94371840
 TARGET_DEVICE="bangkk"
 
 LINE="============================================================"
@@ -70,7 +70,7 @@ echo
 echo "$LINE"
 echo "BANGKK UNIVERSAL VENDOR RESIZE"
 echo "$LINE"
-echo "Target expansion: $ADD bytes (40 MiB)"
+echo "Target expansion: $ADD bytes (90 MiB)"
 
 ###############################################################################
 # ROOT CHECK
@@ -361,24 +361,24 @@ echo "Free blocks: $FREE_BLOCKS"
 section "RESIZE NECESSITY CHECK"
 
 FREE_BYTES=$((FREE_BLOCKS * BLOCK_SIZE))
-MIN_FREE=$((30 * 1024 * 1024))
+MIN_FREE=$((50 * 1024 * 1024))
 
 echo "Vendor free space : $FREE_BYTES bytes"
-echo "Minimum required  : $MIN_FREE bytes (30 MiB)"
+echo "Minimum required  : $MIN_FREE bytes (50 MiB)"
 
 if [ "$FREE_BYTES" -ge "$MIN_FREE" ]; then
     echo
     echo "$LINE"
     echo "RESIZE NOT NECESSARY"
     echo "$LINE"
-    echo "Vendor ha gia almeno 30 MiB di spazio libero."
+    echo "Vendor ha gia almeno 50 MiB di spazio libero."
     echo "Free space: $FREE_BYTES bytes"
     echo
     echo "Nessun resize necessario. Uscita."
     exit 0
 fi
 
-echo "[ OK ] Vendor ha meno di 30 MiB liberi."
+echo "[ OK ] Vendor ha meno di 50 MiB liberi."
 echo "[ OK ] Resize necessario. Continuazione dello script..."
 
 ###############################################################################

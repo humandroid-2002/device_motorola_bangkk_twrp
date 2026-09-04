@@ -183,12 +183,12 @@ jobs:
             ### 🆕 New Features
             - **Added AnyKernel support** for both **AOSP** and **StockOS**
             - Fully compatible with **EROFS** and **EXT4** partitions
+            - Additional 50mb Free space to 40mb to prevent issues on future AK3 Updates.
 
             ### ⚠️ Important Note for EROFS Users
-            On EROFS-based ROMs, **Only first boot after fastboot boot TouchScreen are intentionally Disabled for 40 sec**.  
-            During this process, the recovery performs the **EROFS to EXT4 conversion, partition resize, and partition table update**.  
-            The **Focaltech touchscreen is temporarily disabled** during this process and will be restored automatically when it finishes.  
-            **Please wait until the process finishes (40sec). Do not force reboot or interrupt the recovery —** — the recovery Thouch Screen is *not* Broke.  
+            EROFS-based ROMs, **Only first boot after fastboot boot TouchScreen are intentionally Disabled for 40 sec**.  
+            **Please wait until the Recovery Give you Touch Control.(40sec). 
+            For you're Device safety Do not force reboot or interrupt the recovery.  
 
             ### 📂 Output
             - boot.img
@@ -197,8 +197,7 @@ jobs:
             1. ⚡ `fastboot boot boot.img`
             2. 🔧 From Recovery Go to Advance Setting and Select Flash Current Recovery (REQUIRED!!!)
             3. 🔁 Reboot to recovery (REQUIRED!!!)
-            4. ⏳ On EROFS ROMs, wait for the automatic conversion process to complete
-            5. ✅ Done
+            4. ✅ Done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -317,12 +316,12 @@ jobs:
             ### 🆕 New Features
             - **Added AnyKernel support** for both **AOSP** and **StockOS**
             - Fully compatible with **EROFS** and **EXT4** partitions
+            - Additional 50mb Free space to 40mb to prevent issues on future AK3 Updates.
 
             ### ⚠️ Important Note for EROFS Users
-            On EROFS-based ROMs, **Only first boot after fastboot boot TouchScreen are intentionally Disabled for 40 sec**.  
-            During this process, the recovery performs the **EROFS to EXT4 conversion, partition resize, and partition table update**.  
-            The **Focaltech touchscreen is temporarily disabled** during this process and will be restored automatically when it finishes.  
-            **Please wait until the process finishes (40sec). Do not force reboot or interrupt the recovery —** — the recovery Thouch Screen is *not* Broke.  
+            EROFS-based ROMs, **Only first boot after fastboot boot TouchScreen are intentionally Disabled for 40 sec**.  
+            **Please wait until the Recovery Give you Touch Control.(40sec). 
+            For you're Device safety Do not force reboot or interrupt the recovery.  
 
             ### 📂 Output
             - boot.img
@@ -331,8 +330,7 @@ jobs:
             1. ⚡ `fastboot boot boot.img`
             2. 🔧 From Recovery Go to Advance Setting and Select Flash Current Recovery (REQUIRED!!!)
             3. 🔁 Reboot to recovery (REQUIRED!!!)
-            4. ⏳ On EROFS ROMs, wait for the automatic conversion process to complete
-            5. ✅ Done
+            4. ✅ Done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -469,12 +467,12 @@ jobs:
             ### 🆕 New Features
             - **Added AnyKernel support** for both **AOSP** and **StockOS**
             - Fully compatible with **EROFS** and **EXT4** partitions
+            - Additional 50mb Free space to 40mb to prevent issues on future AK3 Updates.
 
             ### ⚠️ Important Note for EROFS Users
-            On EROFS-based ROMs, **Only first boot after fastboot boot TouchScreen are intentionally Disabled for 40 sec**.  
-            During this process, the recovery performs the **EROFS to EXT4 conversion, partition resize, and partition table update**.  
-            The **Focaltech touchscreen is temporarily disabled** during this process and will be restored automatically when it finishes.  
-            **Please wait until the process finishes (40sec). Do not force reboot or interrupt the recovery —** — the recovery Thouch Screen is *not* Broke.  
+            EROFS-based ROMs, **Only first boot after fastboot boot TouchScreen are intentionally Disabled for 40 sec**.  
+            **Please wait until the Recovery Give you Touch Control.(40sec). 
+            For you're Device safety Do not force reboot or interrupt the recovery.  
 
             ### 📂 Output
             - boot.img
@@ -483,8 +481,7 @@ jobs:
             1. ⚡ `fastboot boot boot.img`
             2. 🔧 From Recovery Go to Advance Setting and Select Flash Current Recovery (REQUIRED!!!)
             3. 🔁 Reboot to recovery (REQUIRED!!!)
-            4. ⏳ On EROFS ROMs, wait for the automatic conversion process to complete
-            5. ✅ Done
+            4. ✅ Done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -591,12 +588,12 @@ jobs:
             ### 🆕 New Features
             - **Added AnyKernel support** for both **AOSP** and **StockOS**
             - Fully compatible with **EROFS** and **EXT4** partitions
+            - Additional 50mb Free space to 40mb to prevent issues on future AK3 Updates.
 
             ### ⚠️ Important Note for EROFS Users
-            On EROFS-based ROMs, **Only first boot after fastboot boot TouchScreen are intentionally Disabled for 40 sec**.  
-            During this process, the recovery performs the **EROFS to EXT4 conversion, partition resize, and partition table update**.  
-            The **Focaltech touchscreen is temporarily disabled** during this process and will be restored automatically when it finishes.  
-            **Please wait until the process finishes (40sec). Do not force reboot or interrupt the recovery —** — the recovery Thouch Screen is *not* Broke.  
+            EROFS-based ROMs, **Only first boot after fastboot boot TouchScreen are intentionally Disabled for 40 sec**.  
+            **Please wait until the Recovery Give you Touch Control.(40sec). 
+            For you're Device safety Do not force reboot or interrupt the recovery.  
 
             ### 📂 Output
             - boot.img
@@ -605,8 +602,7 @@ jobs:
             1. ⚡ `fastboot boot boot.img`
             2. 🔧 From Recovery Go to Advance Setting and Select Flash Current Recovery (REQUIRED!!!)
             3. 🔁 Reboot to recovery (REQUIRED!!!)
-            4. ⏳ On EROFS ROMs, wait for the automatic conversion process to complete
-            5. ✅ Done
+            4. ✅ Done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

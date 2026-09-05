@@ -71,6 +71,7 @@ It was announced in August 2023 and released in September 2023.
           * Magisk
           * Custom kernels
           * Modules / add-ons
+    * Format Data if Clean Install
     * Reboot to system
 
 ---
@@ -114,7 +115,7 @@ This device tree uses a prebuilt kernel extracted from:
 * [x] Flash official and unofficial signed ROMs
 * [x] Flash `system.img` from Install Image
 * [x] Flash `vendor.img` from Install Image
-* [x] Flash boot, init_boot, vendor_boot, dtbo and vbmeta images
+* [x] Flash boot, vendor_boot, dtbo and vbmeta images
 
 ### Storage and connectivity
 
@@ -123,7 +124,7 @@ This device tree uses a prebuilt kernel extracted from:
 * [x] MTP export
 * [x] ADB access and sideload
 * [x] exFAT and NTFS storage support
-* [x] F2FS and EXT4 filesystem support
+* [x] EROFS F2FS EXT4 filesystem support
 
 ---
 

@@ -31,15 +31,18 @@ import /init.recovery.service.rc
 on early-init
     write /sys/fs/selinux/enforce 0
     start set_permissive
-    # Mount firmware
     mkdir /firmware 0755
-    mkdir /firmware_mnt 0755
     mkdir /vendor/firmware 0755
-    mkdir /vendor/firmware_mnt 0755
-    mount vfat /dev/block/bootdevice/by-name/modem${ro.boot.slot_suffix} /firmware ro   
-    symlink /firmware_mnt /vendor/firmware_mnt
-    symlink /firmware /vendor/firmware
-    setenv LD_LIBRARY_PATH /vendor/lib64:/system/lib64:/vendor/lib:/system/lib
+    symlink /firmware /vendor/firmware_mnt
+    # Same SSR policy as the normal system (init.qcom.rc early-boot): a
+    # crashed subsystem must not reboot the whole device. Without this the
+    # modem watchdog restart level defaults to SYSTEM and kills recovery.
+    write /sys/bus/msm_subsys/devices/subsys0/restart_level RELATED
+    write /sys/bus/msm_subsys/devices/subsys1/restart_level RELATED
+    write /sys/bus/msm_subsys/devices/subsys2/restart_level RELATED
+    write /sys/bus/msm_subsys/devices/subsys3/restart_level RELATED
+    write /sys/bus/msm_subsys/devices/subsys4/restart_level RELATED
+    write /sys/bus/msm_subsys/devices/subsys5/restart_level RELATED
 
 on early-fs
     write /proc/sys/kernel/sched_lib_name "recovery,Updater,updater,update_engine_sideload"
@@ -57,8 +60,21 @@ on init
 on fs
     wait /dev/block/platform/soc/${ro.boot.bootdevice}
     symlink /dev/block/platform/soc/${ro.boot.bootdevice} /dev/block/bootdevice
+    # Repeat the SSR writes here in case the sysfs nodes were not ready yet
+    # when early-init ran.
+    write /sys/bus/msm_subsys/devices/subsys0/restart_level RELATED
+    write /sys/bus/msm_subsys/devices/subsys1/restart_level RELATED
+    write /sys/bus/msm_subsys/devices/subsys2/restart_level RELATED
+    write /sys/bus/msm_subsys/devices/subsys3/restart_level RELATED
+    write /sys/bus/msm_subsys/devices/subsys4/restart_level RELATED
+    write /sys/bus/msm_subsys/devices/subsys5/restart_level RELATED
+    # Start rmtfs as soon as by-name exists so the modem finds a working EFS
+    # server during its own initialization, exactly like class core on the ROM.
+    start vendor.rmt_storage
     mkdir /mnt/vendor/persist 0755
     mount ext4 /dev/block/bootdevice/by-name/persist /mnt/vendor/persist ro
+    wait /dev/block/bootdevice/by-name/modem${ro.boot.slot_suffix} 10
+    mount ext4 /dev/block/bootdevice/by-name/modem${ro.boot.slot_suffix} /firmware ro
 
 on property:twrp.modules.loaded=true
     # Load ADSP firmware for PMIC
@@ -83,3 +99,5 @@ service runatboot /system/bin/runatboot.sh
     group root
     oneshot
     seclabel u:r:recovery:s0
+
+import /init.recovery.wifi.rc

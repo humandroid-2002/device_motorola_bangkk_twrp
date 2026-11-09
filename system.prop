@@ -1,2 +1,18 @@
-# Charger
+# ADB
+ro.adb.secure=0
+service.adb.tcp.port=5555
+
+# Gatekeeper
+vendor.gatekeeper.disable_spu=true
+
+# Virtual A/B
+ro.virtual_ab.enabled=true
+
+# Dynamic Partitions
+ro.boot.dynamic_partitions=true
+
+# Charger suspend 
 ro.charger.enable_suspend=1
+
+# FUSE passthrough
+persist.sys.fuse.passthrough.enable=true

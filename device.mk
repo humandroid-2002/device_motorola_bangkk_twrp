@@ -1,94 +1,58 @@
 #
-# Copyright (C) 2022 The Android Open Source Project
+# Copyright (C) 2026 The Android Open Source Project
+# Copyright (C) 2026 SebaUbuntu's TWRP device tree generator
 #
 # SPDX-License-Identifier: Apache-2.0
 #
 
-# Storage / Filesystem
-$(call inherit-product, $(SRC_TARGET_DIR)/product/emulated_storage.mk)
+LOCAL_PATH := device/motorola/bangkk
 
-# Enable virtual A/B OTA
-$(call inherit-product, $(SRC_TARGET_DIR)/product/virtual_ab_ota.mk)
-
-# Installs gsi keys into ramdisk, to boot a GSI with verified boot.
-ifneq ($(wildcard $(SRC_TARGET_DIR)/product/gsi_keys.mk),)
-    $(call inherit-product, $(SRC_TARGET_DIR)/product/gsi_keys.mk)
-endif
-
-# A/B OTA
-AB_OTA_PARTITIONS += \
-    boot \
-    dtbo \
-    product \
-    system \
-    system_ext \
-    vbmeta \
-    vbmeta_system \
-    vendor \
-    vendor_boot
-
+# A/B
 AB_OTA_POSTINSTALL_CONFIG += \
-    FILESYSTEM_TYPE_system=ext4 \
-    POSTINSTALL_OPTIONAL_system=true \
+    RUN_POSTINSTALL_system=true \
     POSTINSTALL_PATH_system=system/bin/otapreopt_script \
-    RUN_POSTINSTALL_system=true
+    FILESYSTEM_TYPE_system=ext4 \
+    POSTINSTALL_OPTIONAL_system=true
 
 AB_OTA_POSTINSTALL_CONFIG += \
-    FILESYSTEM_TYPE_vendor=ext4 \
-    POSTINSTALL_OPTIONAL_vendor=true \
+    RUN_POSTINSTALL_vendor=true \
     POSTINSTALL_PATH_vendor=bin/checkpoint_gc \
-    RUN_POSTINSTALL_vendor=true
+    FILESYSTEM_TYPE_vendor=ext4 \
+    POSTINSTALL_OPTIONAL_vendor=true
 
-AB_OTA_UPDATER                       := true
-TARGET_ENFORCE_AB_OTA_PARTITION_LIST := true
-PRODUCT_USE_DYNAMIC_PARTITIONS       := true
-
-# Boot Control / Fastboot
-PRODUCT_PACKAGES += \
-    android.hardware.boot@1.1-impl-qti.recovery \
-    bootctrl.holi.recovery
-
-PRODUCT_PACKAGES += \
-    android.hardware.fastboot@1.1-impl-mock \
-    fastbootd
-
-# Recovery / Display
-TARGET_RECOVERY_DEVICE_MODULES += \
-    libion \
-    libxml2 \
-    vendor.display.config@2.0
-
-# QCOM
-PRODUCT_PACKAGES += \
-    qcom_decrypt \
-    qcom_decrypt_fbe
-
-# Keystore
-PRODUCT_PACKAGES += \
-    android.system.keystore2
-
-# Update Engine
-PRODUCT_PACKAGES += \
-    checkpoint_gc \
-    otapreopt_script
-
+# Update engine
 PRODUCT_PACKAGES += \
     update_engine \
     update_engine_sideload \
-    update_verifier
+    update_verifier \
+    otapreopt_script \
+    cppreopts.sh \
+    checkpoint_gc
 
-# Shipping / VNDK
-PRODUCT_SHIPPING_API_LEVEL  := 30
-PRODUCT_TARGET_VNDK_VERSION := 30
-
-# OEM Motorola otacert (if needed)
-#PRODUCT_EXTRA_RECOVERY_KEYS += \
-#    $(LOCAL_PATH)/security/ota
-
-# Kernel Modules
+# Boot control HAL
 PRODUCT_PACKAGES += \
-    bangkk_modules
+    android.hardware.boot@1.1-impl-qti.recovery \
+    bootctrl.holi
 
-# Soong
+# Recovery
+TARGET_RECOVERY_DEVICE_MODULES += \
+    libion \
+    libxml2 \
+    display.config@2.0 \
+    vendor.display.config@2.0
+
+# Decrypt
+PRODUCT_PACKAGES += \
+    qcom_decrypt \
+    qcom_decrypt_fbe \
+    android.system.keystore2
+
+# Product
+PRODUCT_SHIPPING_API_LEVEL     := 30
+PRODUCT_TARGET_VNDK_VERSION    := 30
+PRODUCT_USE_DYNAMIC_PARTITIONS := true
+
+# Copy for recovery prebuilt kernel modules 2026-07-17
+PRODUCT_COPY_FILES += $(call find-copy-subdir-files,*.ko,$(LOCAL_PATH)/prebuilt/modules,$(TARGET_COPY_OUT_RECOVERY)/root/vendor/lib/modules/1.1)
 PRODUCT_SOONG_NAMESPACES += \
     $(LOCAL_PATH)

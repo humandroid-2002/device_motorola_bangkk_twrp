@@ -1,0 +1,136 @@
+# Wi-Fi / CNSS bring-up for bangkk recovery.
+# wlan.ko stays in /tmp/lib/modules (copied and loaded early by runatboot.sh).
+# pd-mapper starts on boot, like the stock ROM's class core service, so its
+# service map is published by the time the modem looks up wlan_pd.
+
+on init
+    start vendor.qrtr-ns
+    setprop wifi.interface wlan0
+
+on post-fs-data
+    mkdir /data/vendor/wifi 0770 wifi wifi
+    mkdir /data/vendor/wifi/sockets 0770 wifi wifi
+    exec -- /system/bin/rm -f /data/vendor/wifi/sockets/cnss_user_server /data/vendor/wifi/sockets/cnss_user_client
+    mkdir /data/vendor/wifi/hostapd 0770 wifi wifi
+    mkdir /data/vendor/wifi/hostapd/ctrl 0770 wifi wifi
+    mkdir /data/vendor/wifi/wpa_supplicant 0770 wifi wifi
+    mkdir /data/vendor/wifi/wpa 0770 wifi wifi
+    mkdir /data/vendor/wifi/wpa/sockets 0770 wifi wifi
+    mkdir /dev/socket/wifihal 0770 wifi wifi
+    chmod 2770 /dev/socket/wifihal
+    mkdir /data/vendor/port_bridge 0770 radio radio
+    mkdir /tmp/recovery 0777 root root
+    mkdir /tmp/recovery/sockets 0777 root root
+
+on boot
+    setprop wifi.interface wlan0
+    start vendor.pd_mapper
+    mkdir /dev/socket/wigig 0770 wifi wifi
+    mkdir /dev/socket/port-bridge 0750 radio radio
+    # RFS tree used by tftp_server to serve firmware to the modem. Requests
+    # such as readonly/firmware/image/wlanmdsp.mbn are resolved against
+    # /vendor/rfs/msm/mpss, and readonly is a view of the host root (the same
+    # layout the stock ROM provides). Without it wlan_pd cannot be booted.
+    # init's mkdir cannot create parents, so each level is created explicitly.
+    mkdir /vendor/rfs 0755 root root
+    mkdir /vendor/rfs/msm 0755 root root
+    mkdir /vendor/rfs/msm/mpss 0755 root root
+    symlink / /vendor/rfs/msm/mpss/readonly
+
+on property:twrp.modules.loaded=true
+    start vendor.rmt_storage
+    start vendor.tftp_server
+    start wifi_stack
+
+on property:init.svc.vendor.per_mgr=running
+    start vendor.per_proxy
+
+on property:init.svc.cnss-daemon=running
+    start wlan_loader
+
+on property:init.svc.cnss-daemon=stopped
+    rm /data/vendor/wifi/sockets/cnss_user_server
+    rm /data/vendor/wifi/sockets/cnss_user_client
+
+on property:sys.fox.wlan.up=1
+    setprop sys.fox.wlan.up 0
+    setprop sys.fox.wlan.supplicant_pending 1
+    start wlan_loader
+
+service vendor.qrtr-ns /system/bin/qrtr-ns -f
+    user root
+    group root
+    capabilities NET_BIND_SERVICE
+    setenv LD_LIBRARY_PATH /vendor/lib64:/system/lib64
+    seclabel u:r:recovery:s0
+
+# rmt_storage must run before anything boots the modem. The wrapper stages
+# the EFS partitions in RAM and bind-mounts them over by-name in a private
+# mount namespace, so the modem never gets write access to real EFS.
+service vendor.rmt_storage /system/bin/rmt_storage_ro.sh
+    user root
+    group root
+    disabled
+    namespace mnt
+    setenv LD_LIBRARY_PATH /vendor/lib64:/system/lib64
+    seclabel u:r:recovery:s0
+
+service vendor.tftp_server /system/bin/tftp_server
+    user root
+    group root
+    disabled
+    setenv LD_LIBRARY_PATH /vendor/lib64:/system/lib64
+    seclabel u:r:recovery:s0
+
+service vendor.pd_mapper /system/bin/pd-mapper
+    user root
+    group root
+    disabled
+    setenv LD_LIBRARY_PATH /vendor/lib64:/system/lib64
+    seclabel u:r:recovery:s0
+
+service vendor.per_mgr /system/bin/pm-service
+    user root
+    group root
+    disabled
+    setenv LD_LIBRARY_PATH /vendor/lib64:/system/lib64
+    seclabel u:r:recovery:s0
+
+service vendor.per_proxy /system/bin/pm-proxy
+    user root
+    group root
+    disabled
+    setenv LD_LIBRARY_PATH /vendor/lib64:/system/lib64
+    seclabel u:r:recovery:s0
+
+service cnss-daemon /system/bin/cnss_daemon.sh -n -l
+    user root
+    group root inet net_admin wifi
+    # CAP_SYS_ADMIN is needed by the wrapper to mount the tmpfs over the
+    # user socket directory inside the service's private mount namespace.
+    capabilities NET_ADMIN SYS_ADMIN
+    disabled
+    namespace mnt
+    setenv LD_LIBRARY_PATH /vendor/lib64:/system/lib64
+    seclabel u:r:recovery:s0
+
+service wlan_loader /system/bin/wlan_loader.sh
+    user root
+    group root
+    oneshot
+    disabled
+    seclabel u:r:recovery:s0
+
+service wifi_stack /system/bin/wifi_stack.sh
+    user root
+    group root
+    oneshot
+    disabled
+    seclabel u:r:recovery:s0
+
+service wpa_supplicant /system/bin/wpa_supplicant -Dnl80211 -iwlan0 -dd -O/tmp/recovery/sockets -c/vendor/etc/wifi/wpa_supplicant.conf
+    user root
+    group root wifi
+    disabled
+    setenv LD_LIBRARY_PATH /vendor/lib64:/vendor/lib64/hw:/system/lib64
+    seclabel u:r:recovery:s0

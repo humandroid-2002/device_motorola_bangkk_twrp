@@ -90,6 +90,11 @@ do
     load_mod "$mod"
 done
 
+# wlan.ko is loaded early, as the stock ROM does via modules.load, so the
+# WLAN HDD/icnss2 state is ready before cnss-daemon and the modem start
+# their WLFW handshake.
+load_mod wlan
+
 for mod in \
     sensors_class \
     mmi_annotate \
@@ -175,7 +180,6 @@ do
 done
 
 for mod in \
-    wlan \
     zram \
     exfat \
     sec_nfc
@@ -250,7 +254,6 @@ for mod in \
     stub_dlkm \
     utags \
     rdbg \
-    wlan \
     zram \
     exfat \
     sec_nfc

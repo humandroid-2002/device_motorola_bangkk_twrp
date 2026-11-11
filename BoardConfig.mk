@@ -75,9 +75,8 @@ BOARD_KERNEL_IMAGE_NAME := Image
 BOARD_RAMDISK_USE_LZ4   := true
 
 # Keep only required modules; we're almost on size limit (Touch,Battery and Haptics)
-TW_LOAD_VENDOR_MODULES := "focaltech_v3.ko"
-# WLAN
-#TW_LOAD_VENDOR_MODULES := 
+TW_LOAD_PREBUILT_MODULES_AT_FIRST := true
+TW_LOAD_VENDOR_MODULES := "bq25980_mmi_iio.ko exfat.ko focaltech_v3.ko goodix_brl_mmi.ko ldo_vibrator_mmi.ko mmi_annotate.ko mmi_info.ko mmi_parallel_charger_iio.ko mmi_relay.ko mmi-smbcharger-iio.ko sensors_class.ko touchscreen_mmi.ko"
 
 BOARD_KERNEL_PAGESIZE      := 4096
 BOARD_FLASH_BLOCK_SIZE     := 262144 # (BOARD_KERNEL_PAGESIZE * 64)
@@ -103,7 +102,7 @@ BOARD_MKBOOTIMG_ARGS += --second_offset $(BOARD_KERNEL_SECOND_OFFSET)
 # prebuilt
 TARGET_FORCE_PREBUILT       := true
 ifeq ($(TARGET_FORCE_PREBUILT),true)
-TARGET_PREBUILT_KERNEL      := $(DEVICE_PATH)/prebuilt/Image.gz
+TARGET_PREBUILT_KERNEL      := $(DEVICE_PATH)/prebuilt/kernel
 TARGET_PREBUILT_DTB         := $(DEVICE_PATH)/prebuilt/dtb
 else
 TARGET_KERNEL_SOURCE := kernel/motorola/sm6375

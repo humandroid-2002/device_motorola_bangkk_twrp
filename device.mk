@@ -52,7 +52,9 @@ PRODUCT_SHIPPING_API_LEVEL     := 30
 PRODUCT_TARGET_VNDK_VERSION    := 30
 PRODUCT_USE_DYNAMIC_PARTITIONS := true
 
-# Copy for recovery prebuilt kernel modules 2026-07-17
+# Copy for recovery prebuilt kernel modules 2026-11-06
 PRODUCT_COPY_FILES += $(call find-copy-subdir-files,*.ko,$(LOCAL_PATH)/prebuilt/modules,$(TARGET_COPY_OUT_RECOVERY)/root/vendor/lib/modules/1.1)
+
 PRODUCT_SOONG_NAMESPACES += \
     $(LOCAL_PATH)
+

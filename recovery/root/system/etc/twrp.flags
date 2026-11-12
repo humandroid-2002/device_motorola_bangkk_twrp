@@ -1,37 +1,84 @@
 # AVB partitions
-/vbmeta             emmc    /dev/block/bootdevice/by-name/vbmeta        flags=slotselect;display="vbmeta";backup=1;flashimg=1
-/vbmeta_system      emmc    /dev/block/bootdevice/by-name/vbmeta_system flags=slotselect;display="vbmeta_system";backup=1;flashimg=1
+/vbmeta             emmc    /dev/block/bootdevice/by-name/vbmeta                                    flags=slotselect;display="vbmeta";backup=1;flashimg=1
+/vbmeta_system      emmc    /dev/block/bootdevice/by-name/vbmeta_system                             flags=slotselect;display="vbmeta_system";backup=1;flashimg=1
 
 # Dynamic partitions
-/system_image      emmc    /dev/block/mapper/system      flags=backup=1;display="System image";flashimg=1
-/vendor_image      emmc    /dev/block/mapper/vendor      flags=backup=1;display="Vendor image";flashimg=1
-/product_image     emmc    /dev/block/mapper/product     flags=backup=1;display="Product image";flashimg=1
-/system_ext_image  emmc    /dev/block/mapper/system_ext  flags=backup=1;display="System_EXT image";flashimg=1
+/system_image      emmc    /dev/block/mapper/system                                                 flags=backup=1;display="System image";flashimg=1
+/vendor_image      emmc    /dev/block/mapper/vendor                                                 flags=backup=1;display="Vendor image";flashimg=1
+/product_image     emmc    /dev/block/mapper/product                                                flags=backup=1;display="Product image";flashimg=1
+/system_ext_image  emmc    /dev/block/mapper/system_ext                                             flags=backup=1;display="System_EXT image";flashimg=1
 
 # Physical partitions
-/persist           ext4    /dev/block/bootdevice/by-name/persist       flags=backup=1;display="Persist"
-/prodpersist       ext4    /dev/block/bootdevice/by-name/prodpersist   flags=backup=1;display="Product Persist"
-/firmware_mnt      ext4    /dev/block/bootdevice/by-name/modem         flags=display="Firmware";mounttodecrypt;fsflags="ro,shortname=lower,uid=1000,gid=1000,dmask=227,fmask=337,context=u:object_r:firmware_file:s0";slotselect
-/fsg               ext4    /dev/block/bootdevice/by-name/fsg           flags=backup=1;display="FSG";fsflags="ro,context=u:object_r:fsg_file:s0";slotselect
-/bt_firmware       ext4    /dev/block/bootdevice/by-name/bluetooth     flags=backup=1;display="Bluetooth";fsflags="ro,context=u:object_r:bt_firmware_file:s0";slotselect
-/dsp               ext4    /dev/block/bootdevice/by-name/dsp           flags=backup=1;display="DSP";slotselect
-/metadata          ext4    /dev/block/bootdevice/by-name/metadata      flags=backup=1;display="Metadata"
-/logo              emmc    /dev/block/bootdevice/by-name/logo          flags=backup=1;display="Logo";slotselect
-/keymaster         emmc    /dev/block/bootdevice/by-name/keymaster     flags=slotselect
+/persist           ext4    /dev/block/bootdevice/by-name/persist                                    flags=backup=1;display="Persist"
+/prodpersist       ext4    /dev/block/bootdevice/by-name/prodpersist                                flags=backup=1;display="Product Persist"
+/firmware_mnt      ext4    /dev/block/bootdevice/by-name/modem                                      flags=display="Firmware";mounttodecrypt;fsflags="ro,shortname=lower,uid=1000,gid=1000,dmask=227,fmask=337,context=u:object_r:firmware_file:s0";slotselect
+/fsg               ext4    /dev/block/bootdevice/by-name/fsg                                        flags=backup=1;display="FSG";fsflags="ro,context=u:object_r:fsg_file:s0";slotselect
+/bt_firmware       ext4    /dev/block/bootdevice/by-name/bluetooth                                  flags=backup=1;display="Bluetooth";fsflags="ro,context=u:object_r:bt_firmware_file:s0";slotselect
+/dsp               ext4    /dev/block/bootdevice/by-name/dsp                                        flags=backup=1;display="DSP";slotselect
+/metadata          ext4    /dev/block/bootdevice/by-name/metadata                                   flags=backup=1;display="Metadata"
+/logo              emmc    /dev/block/bootdevice/by-name/logo                                       flags=backup=1;display="Logo";slotselect
+/keymaster         emmc    /dev/block/bootdevice/by-name/keymaster                                  flags=slotselect
 
 # Storage
-/external_sd       auto    /dev/block/mmcblk1p1    /dev/block/mmcblk1 flags=display="Micro-SD-Card";storage;wipeingui;removable
-/usb-otg           auto    /dev/block/sdg1         /dev/block/sdg    flags=display="USB-OTG";storage;wipeingui;removable
+/storage       	   auto    /data/media/0                                                            flags=display="Internal Storage";backup=1;usermrf;fsflags="bind,utf8";removable
+/external_sd       auto    /dev/block/mmcblk1p1    /dev/block/mmcblk1                               flags=display="Micro-SD-Card";storage;wipeingui;removable
+/usb-otg           auto    /dev/block/sdg1         /dev/block/sdg                                   flags=display="USB-OTG";storage;wipeingui;removable
 
 # Boot partitions
-/boot              emmc    /dev/block/bootdevice/by-name/boot          flags=backup=1;display="Boot";slotselect;flashimg=1
-/dtbo              emmc    /dev/block/bootdevice/by-name/dtbo          flags=backup=1;display="Dtbo";slotselect;flashimg=1
-/vendor_boot       emmc    /dev/block/bootdevice/by-name/vendor_boot   flags=backup=1;display="Vendor-boot";slotselect;flashimg=1
+/boot              emmc    /dev/block/bootdevice/by-name/boot                                       flags=backup=1;display="Boot";slotselect;flashimg=1
+/dtbo              emmc    /dev/block/bootdevice/by-name/dtbo                                       flags=backup=1;display="Dtbo";slotselect;flashimg=1
+/vendor_boot       emmc    /dev/block/bootdevice/by-name/vendor_boot                                flags=backup=1;display="Vendor-boot";slotselect;flashimg=1
 
 # EFS
-/efs1              emmc    /dev/block/bootdevice/by-name/modemst1      flags=backup=1;display="EFS"
-/efs2              emmc    /dev/block/bootdevice/by-name/modemst2      flags=backup=1;subpartitionof=/efs1
+/efs1              emmc    /dev/block/bootdevice/by-name/modemst1                                   flags=backup=1;display="EFS"
+/efs2              emmc    /dev/block/bootdevice/by-name/modemst2                                   flags=backup=1;subpartitionof=/efs1
 
 # User data
-/data              f2fs    /dev/block/bootdevice/by-name/userdata      flags=fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized+wrappedkey_v0;keydirectory=/metadata/vold/metadata_encryption;metadata_encryption=aes-256-xts:wrappedkey_v0
+/data              f2fs    /dev/block/bootdevice/by-name/userdata                                   flags=fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized+wrappedkey_v0;keydirectory=/metadata/vold/metadata_encryption;metadata_encryption=aes-256-xts:wrappedkey_v0
 /misc              emmc    /dev/block/bootdevice/by-name/misc
+
+# UEFI boot logs
+/logfs                 vfat    /dev/block/bootdevice/by-name/logfs                                  flags=display="LogFS (UEFI)";fsflags="umask=006,uid=1000,gid=1000,utf8"
+
+# Other partitions
+/cache                 ext4    /dev/block/bootdevice/by-name/rescue                                 flags=display="Cache";formattable;wipeduringfactoryreset
+/misc                  emmc    /dev/block/bootdevice/by-name/misc
+/frp                   emmc    /dev/block/bootdevice/by-name/frp
+
+# Bootloader/TrustZone/Hypervisor partitions
+/abl                   emmc    /dev/block/bootdevice/by-name/abl                                    flags=display="Bootloader/Trustzone";backup=1;slotselect
+/xbl                   emmc    /dev/block/bootdevice/by-name/xbl                                    flags=backup=1;slotselect;subpartitionof=/abl
+/xbl_config            emmc    /dev/block/bootdevice/by-name/xbl_config                             flags=backup=1;slotselect;subpartitionof=/abl
+/tz                    emmc    /dev/block/bootdevice/by-name/tz                                     flags=backup=1;slotselect;subpartitionof=/abl
+/hyp                   emmc    /dev/block/bootdevice/by-name/hyp                                    flags=backup=1;slotselect;subpartitionof=/abl
+/uefisecapp            emmc    /dev/block/bootdevice/by-name/uefisecapp                             flags=backup=1;slotselect;subpartitionof=/abl
+/uefivarstore          emmc    /dev/block/bootdevice/by-name/uefivarstore                           flags=backup=1;slotselect;subpartitionof=/abl
+/devcfg                emmc    /dev/block/bootdevice/by-name/devcfg                                 flags=backup=1;slotselect;subpartitionof=/abl
+/qupfw                 emmc    /dev/block/bootdevice/by-name/qupfw                                  flags=backup=1;slotselect;subpartitionof=/abl
+/apdp                  emmc    /dev/block/bootdevice/by-name/apdp                                   flags=backup=1;slotselect;subpartitionof=/abl
+/devinfo               emmc    /dev/block/bootdevice/by-name/devinfo                                flags=backup=1;subpartitionof=/abl
+
+# Additional bootloader/firmware partitions
+/prov                  emmc    /dev/block/bootdevice/by-name/prov                                   flags=backup=1;slotselect
+/rpm                   emmc    /dev/block/bootdevice/by-name/rpm                                    flags=backup=1;slotselect
+
+# Security / DRM partitions
+/ssd                   emmc    /dev/block/bootdevice/by-name/ssd                                    flags=display="DRM/Security";backup=1
+/secdata               emmc    /dev/block/bootdevice/by-name/secdata                                flags=backup=1;subpartitionof=/ssd
+/secdataBackup         emmc    /dev/block/bootdevice/by-name/secdataBackup                          flags=backup=1;subpartitionof=/ssd
+/storsec               emmc    /dev/block/bootdevice/by-name/storsec                                flags=backup=1;subpartitionof=/ssd
+/keystore              emmc    /dev/block/bootdevice/by-name/keymaster                              flags=backup=1;subpartitionof=/ssd
+
+# Additional partitions
+/utags                 emmc    /dev/block/bootdevice/by-name/utags                                  flags=backup=1
+/utagsBackup           emmc    /dev/block/bootdevice/by-name/utagsBackup                            flags=backup=1
+/vm-data               emmc    /dev/block/bootdevice/by-name/vm-data                                flags=backup=1
+/vm-keystore           emmc    /dev/block/bootdevice/by-name/vm-keystore                            flags=backup=1
+/super                 emmc    /dev/block/bootdevice/by-name/super                                  flags=backup=1
+/carrier               emmc    /dev/block/bootdevice/by-name/carrier                                flags=backup=1
+/cid                   emmc    /dev/block/bootdevice/by-name/cid                                    flags=backup=1
+/ddr                   emmc    /dev/block/bootdevice/by-name/ddr                                    flags=backup=1
+/dhob                  emmc    /dev/block/bootdevice/by-name/dhob                                   flags=backup=1
+/fsc                   emmc    /dev/block/bootdevice/by-name/fsc                                    flags=backup=1
+/kpan                  emmc    /dev/block/bootdevice/by-name/kpan                                   flags=backup=1
+/logo                  emmc    /dev/block/bootdevice/by-name/logo                                   flags=backup=1;slotselect

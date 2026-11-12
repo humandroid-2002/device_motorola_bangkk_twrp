@@ -6,7 +6,7 @@
 /system_image      emmc    /dev/block/mapper/system      flags=backup=1;display="System image";flashimg=1
 /vendor_image      emmc    /dev/block/mapper/vendor      flags=backup=1;display="Vendor image";flashimg=1
 /product_image     emmc    /dev/block/mapper/product     flags=backup=1;display="Product image";flashimg=1
-/system_ext_image  emmc    /dev/block/mapper/system_ext  flags=backup=1;display="System_ext image";flashimg=1
+/system_ext_image  emmc    /dev/block/mapper/system_ext  flags=backup=1;display="System_EXT image";flashimg=1
 
 # Physical partitions
 /persist           ext4    /dev/block/bootdevice/by-name/persist       flags=backup=1;display="Persist"
@@ -20,13 +20,13 @@
 /keymaster         emmc    /dev/block/bootdevice/by-name/keymaster     flags=slotselect
 
 # Storage
-/external_sd       auto    /dev/block/mmcblk1p1    /dev/block/mmcblk1 flags=display="Micro SD Card";storage;wipeingui;removable
-/usb-otg           auto    /dev/block/sdg1         /dev/block/sdg    flags=display="USB OTG";storage;wipeingui;removable
+/external_sd       auto    /dev/block/mmcblk1p1    /dev/block/mmcblk1 flags=display="Micro-SD-Card";storage;wipeingui;removable
+/usb-otg           auto    /dev/block/sdg1         /dev/block/sdg    flags=display="USB-OTG";storage;wipeingui;removable
 
 # Boot partitions
 /boot              emmc    /dev/block/bootdevice/by-name/boot          flags=backup=1;display="Boot";slotselect;flashimg=1
 /dtbo              emmc    /dev/block/bootdevice/by-name/dtbo          flags=backup=1;display="Dtbo";slotselect;flashimg=1
-/vendor_boot       emmc    /dev/block/bootdevice/by-name/vendor_boot   flags=backup=1;display="Vendor_boot";slotselect;flashimg=1
+/vendor_boot       emmc    /dev/block/bootdevice/by-name/vendor_boot   flags=backup=1;display="Vendor-boot";slotselect;flashimg=1
 
 # EFS
 /efs1              emmc    /dev/block/bootdevice/by-name/modemst1      flags=backup=1;display="EFS"

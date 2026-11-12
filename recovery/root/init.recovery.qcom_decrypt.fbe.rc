@@ -11,6 +11,7 @@ on property:twrp.all.users.decrypted=true
     stop qseecomd
     stop gatekeeper-1-0-qti
     stop keymaster-4-1-qti
+    setprop sys.boot_completed 1
 
 # For Android 10+ trees, services should be placed in /system/bin in the recovery ramdisk
 # For older trees, the services should be placed in /sbin

@@ -43,7 +43,7 @@
 # Other partitions
 /cache                 ext4    /dev/block/bootdevice/by-name/rescue                                 flags=display="Cache";formattable;wipeduringfactoryreset
 /misc                  emmc    /dev/block/bootdevice/by-name/misc
-/frp                   emmc    /dev/block/bootdevice/by-name/frp
+/frp                   emmc    /dev/block/bootdevice/by-name/frp                                    flags=display="FRP";wipeingui
 
 # Bootloader/TrustZone/Hypervisor partitions
 /abl                   emmc    /dev/block/bootdevice/by-name/abl                                    flags=display="Bootloader/Trustzone";backup=1;slotselect

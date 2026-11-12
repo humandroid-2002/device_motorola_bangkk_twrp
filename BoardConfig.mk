@@ -114,6 +114,7 @@ endif
 # Partition
 TARGET_RECOVERY_FSTAB := $(DEVICE_PATH)/recovery.fstab
 TARGET_SYSTEM_PROP    += $(DEVICE_PATH)/system.prop
+TARGET_SYSTEM_PROP    += $(DEVICE_PATH)/vendor.prop
 BOARD_ROOT_EXTRA_SYMLINKS := \
     /vendor/fsg:/fsg
 

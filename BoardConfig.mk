@@ -10,6 +10,7 @@ DEVICE_PATH := device/motorola/bangkk
 # Build Rules
 ALLOW_MISSING_DEPENDENCIES := true
 BUILD_BROKEN_DUP_RULES := true
+BUILD_BROKEN_USES_NETWORK := true
 BUILD_BROKEN_MISSING_REQUIRED_MODULES := true
 BUILD_BROKEN_ELF_PREBUILT_PRODUCT_COPY_FILES := true
 
@@ -118,12 +119,9 @@ BOARD_ROOT_EXTRA_SYMLINKS := \
 
 BOARD_BOOTIMAGE_PARTITION_SIZE        := 100663296
 BOARD_VENDOR_BOOTIMAGE_PARTITION_SIZE := 100663296
+BOARD_DTBOIMG_PARTITION_SIZE          := 25165824
+BOARD_USERDATAIMAGE_PARTITION_SIZE    := 246543265792
 
-# A device can set up BOARD_SYSTEMIMAGE_JOURNAL_SIZE (number of journal blocks)
-# in its BoardConfig.mk.
-# To disable journaling, set "BOARD_SYSTEMIMAGE_JOURNAL_SIZE := 0".
-# BOARD_VENDORIMAGE_JOURNAL_SIZE and BOARD_OEMIMAGE_JOURNAL_SIZE work in
-# similar way.
 BOARD_SYSTEMIMAGE_JOURNAL_SIZE        := 0
 BOARD_VENDORIMAGE_JOURNAL_SIZE        := 0
 BOARD_OEMIMAGE_JOURNAL_SIZE           := 0
@@ -132,9 +130,13 @@ TARGET_USERIMAGES_USE_EXT4 := true
 TARGET_USERIMAGES_USE_F2FS := true
 TARGET_USES_MKE2FS         := true
 
-BOARD_SUPER_PARTITION_SIZE                  := 9126805504 # TODO: Fix hardcoded value
+# Filesystem
+BOARD_EROFS_COMPRESSOR                      := lz4hc
+BOARD_EROFS_PCLUSTER_SIZE                   := 4096
+
+BOARD_SUPER_PARTITION_SIZE                  := 6710886400 # TODO: Fix hardcoded value
 BOARD_SUPER_PARTITION_GROUPS                := qti_dynamic_partitions
-BOARD_QTI_DYNAMIC_PARTITIONS_SIZE           := 9122611200 # TODO: Fix hardcoded value
+BOARD_QTI_DYNAMIC_PARTITIONS_SIZE           := 6706692096 # TODO: Fix hardcoded value
 BOARD_QTI_DYNAMIC_PARTITIONS_PARTITION_LIST := system system_ext product vendor vendor_dlkm odm
 
 BOARD_USERDATAIMAGE_FILE_SYSTEM_TYPE   := f2fs
@@ -187,6 +189,7 @@ TW_INPUT_BLACKLIST              := "hbtp_vm"
 TW_BRIGHTNESS_PATH              := "/sys/class/backlight/panel0-backlight/brightness"
 TW_CUSTOM_CPU_TEMP_PATH         := "/sys/class/thermal/thermal_zone28/temp" # CPU-0-0-USR
 TW_CUSTOM_BATTERY_PATH          := "/sys/class/power_supply/qcom_battery"
+TW_DEVICE_VERSION               := bangkk
 TW_HAS_FLASHLIGHT               := false
 RECOVERY_SDCARD_ON_DATA         := true
 TW_MAX_BRIGHTNESS               := 1650
@@ -205,6 +208,19 @@ TW_NO_SCREEN_BLANK              := true
 TW_EXTRA_LANGUAGES              := false
 TWRP_INCLUDE_LOGCAT             := true
 TARGET_USES_LOGD                := true
+TW_INCLUDE_FB2PNG               := true
+TW_INCLUDE_NTFS_3G              := true
+TW_NO_EXFAT_FUSE                := true
+TW_INCLUDE_RESETPROP            := true
+TW_INCLUDE_LIBRESETPROP         := true
+TW_INCLUDE_REPACKTOOLS          := true
+TW_USE_DMCTL                    := true
+TW_INCLUDE_LPDUMP               := true
+TW_INCLUDE_LPTOOLS              := true
+TW_INCLUDE_FASTBOOTD            := true
+TW_HAS_EDL_MODE                 := true
+TW_EXCLUDE_APEX                 := true
+
 # Battery
 TW_USE_LEGACY_BATTERY_SERVICES  := true
 TARGET_RECOVERY_QCOM_RTC_FIX    := true

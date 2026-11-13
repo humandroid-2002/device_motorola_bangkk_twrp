@@ -128,7 +128,7 @@ struct update_data {
      uint32_t num_valid_entries;
 };
 
-int32_t set_boot_lun(char *sg_dev,uint8_t boot_lun_id);
+static int32_t set_boot_lun(char *sg_dev,uint8_t boot_lun_id);
 /******************************************************************************
  * FUNCTIONS
  ******************************************************************************/
@@ -612,7 +612,7 @@ error:
         return -1;
 }
 
-int set_boot_lun(char *sg_dev, uint8_t boot_lun_id)
+static int set_boot_lun(char *sg_dev, uint8_t boot_lun_id)
 {
 #ifndef _GENERIC_KERNEL_HEADERS
         int fd = -1;

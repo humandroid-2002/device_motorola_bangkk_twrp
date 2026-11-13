@@ -21,8 +21,8 @@
 
 # Storage
 /storage       	   auto    /data/media/0                                                            flags=display="Internal Storage";backup=1;usermrf;fsflags="bind,utf8";removable
-/external_sd       auto    /dev/block/mmcblk1p1    /dev/block/mmcblk1                               flags=display="Micro-SD-Card";storage;wipeingui;removable
-/usb-otg           auto    /dev/block/sdg1         /dev/block/sdg                                   flags=display="USB-OTG";storage;wipeingui;removable
+/external_sd       auto    /dev/block/mmcblk1p1    /dev/block/mmcblk1                               flags=display="MicroSD";storage;fsflags="utf8,sync";storage;formattable;removable
+/usb-otg           auto    /dev/block/sdg1         /dev/block/sdg                                   flags=display="usb-otg";fsflags="utf8,sync";storage;formattable;removable
 
 # Boot partitions
 /boot              emmc    /dev/block/bootdevice/by-name/boot                                       flags=backup=1;display="Boot";slotselect;flashimg=1

@@ -34,6 +34,7 @@
  ******************************************************************************/
 #include <fcntl.h>
 #include <string.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
@@ -550,8 +551,8 @@ int get_scsi_node_from_bootdevice(const char *bootdev_path,
                                  __func__);
                 goto error;
         }
-        if (readlink(bootdev_path, real_path, sizeof(real_path) - 1) < 0) {
-                        fprintf(stderr, "failed to resolve link for %s(%s)\n",
+        if (!realpath(bootdev_path, real_path)) {
+                        fprintf(stderr, "failed to resolve path for %s(%s)\n",
                                         bootdev_path,
                                         strerror(errno));
                         goto error;

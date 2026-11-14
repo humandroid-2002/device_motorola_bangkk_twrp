@@ -157,6 +157,9 @@ if [ "$1" = "$FDEVICE" -o "$FOX_BUILD_DEVICE" = "$FDEVICE" ]; then
 	# patchelf
 	export FOX_USE_PATCHELF_BINARY=1
 
+	# Wlan web UI
+	export export FOX_REMOTE_DASHBOARD=1
+
 	# Fox Settings
 	export LC_ALL="C"
 	export ALLOW_MISSING_DEPENDENCIES=true

@@ -107,4 +107,10 @@ service fox_nas /system/bin/nas_mount.sh
     oneshot
     seclabel u:r:recovery:s0
 
+service fox_fix_ramdisk /system/bin/fix_ramdisk_files.sh
+    user root
+    group root
+    oneshot
+    seclabel u:r:recovery:s0
+
 import /init.recovery.wifi.rc

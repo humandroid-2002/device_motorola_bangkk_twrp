@@ -7,7 +7,7 @@
 # callback invoked by orangefox vendor scripts
 if [ "$2" = "--first-call" ] && [ -n "$1" ] && [ -d "$1" ]; then
     _fox_precompress_ramdisk() {
-        local ramdisk="$1" upx_bin="" min=65536 dir f sz cb_dir=""
+        local ramdisk="$1" upx_bin="" min=32768 dir f sz cb_dir=""
         cb_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null)"
         for c in \
             "${FOX_VENDOR_PATH:+$FOX_VENDOR_PATH/tools/upx}" \
@@ -22,7 +22,7 @@ if [ "$2" = "--first-call" ] && [ -n "$1" ] && [ -d "$1" ]; then
             return 0
         fi
 
-        echo "-- compressing ARM ELF binaries > ${min} bytes (64 KB threshold) with $upx_bin"
+        echo "-- compressing ARM ELF binaries > ${min} bytes (32 KB threshold) with $upx_bin"
         for dir in "$ramdisk/sbin" "$ramdisk/system/bin"; do
             [ -d "$dir" ] || continue
             for f in "$dir"/*; do
@@ -41,26 +41,49 @@ if [ "$2" = "--first-call" ] && [ -n "$1" ] && [ -d "$1" ]; then
             done
         done
     }
+    _fox_remove_fastbootd() {
+        local ramdisk="$1"
+        rm -f "$ramdisk/system/bin/fastbootd" \
+              "$ramdisk/system/lib64/android.hardware.fastboot@1.0.so" \
+              "$ramdisk/system/lib64/android.hardware.fastboot@1.1.so" \
+              "$ramdisk/system/lib64/fastboot-V1-ndk.so" \
+              "$ramdisk/res/images/fastbootd.png"
+    }
+    _fox_prune_languages() {
+        local ramdisk="$1" f
+        [ -d "$ramdisk/twres/languages" ] || return 0
+        for f in "$ramdisk"/twres/languages/*.xml; do
+            [ -f "$f" ] || continue
+            case "$(basename "$f")" in
+                en.xml|en_*.xml) ;;
+                *) rm -f "$f" ;;
+            esac
+        done
+    }
     _fox_prune_fonts() {
         local ramdisk="$1" twres="$1/twres" img="$1/twres/resources/images.xml" cust="$1/twres/pages/customization.xml" f n
         [ -d "$twres" ] || return 0
         echo "-- pruning extra fonts from ramdisk"
-        [ -f "$twres/themes/font.xml" ] && sed -i -e 's/GoogleSans/Roboto/g' "$twres/themes/font.xml"
-        [ -f "$img" ] && sed -i -e 's/EuclidFlex/Roboto/g' -e 's/GoogleSans/Roboto/g' -e 's/FiraCode/Roboto/g' "$img"
-        [ -f "$twres/splash.xml" ] && sed -i -e 's/EuclidFlex/Roboto/g' -e 's/GoogleSans/Roboto/g' -e 's/FiraCode/Roboto/g' "$twres/splash.xml"
-        [ -f "$twres/themes/sed/splash.xml" ] && sed -i -e 's/EuclidFlex/Roboto/g' "$twres/themes/sed/splash.xml"
-        [ -f "$twres/themes/sed/splash_orig.xml" ] && sed -i -e 's/EuclidFlex/Roboto/g' "$twres/themes/sed/splash_orig.xml"
+        [ -f "$twres/themes/font.xml" ] && sed -i -e 's/GoogleSans/Roboto/g' -e 's/InterDisplay/Roboto/g' -e 's/RobotoSlab/Roboto/g' "$twres/themes/font.xml"
+        [ -f "$img" ] && sed -i -e 's/EuclidFlex/Roboto/g' -e 's/GoogleSans/Roboto/g' -e 's/FiraCode/Roboto/g' -e 's/InterDisplay/Roboto/g' -e 's/RobotoSlab/Roboto/g' "$img"
+        [ -f "$twres/splash.xml" ] && sed -i -e 's/EuclidFlex/Roboto/g' -e 's/GoogleSans/Roboto/g' -e 's/FiraCode/Roboto/g' -e 's/InterDisplay/Roboto/g' -e 's/RobotoSlab/Roboto/g' "$twres/splash.xml"
+        [ -f "$twres/themes/sed/splash.xml" ] && sed -i -e 's/EuclidFlex/Roboto/g' -e 's/InterDisplay/Roboto/g' -e 's/RobotoSlab/Roboto/g' "$twres/themes/sed/splash.xml"
+        [ -f "$twres/themes/sed/splash_orig.xml" ] && sed -i -e 's/EuclidFlex/Roboto/g' -e 's/InterDisplay/Roboto/g' -e 's/RobotoSlab/Roboto/g' "$twres/themes/sed/splash_orig.xml"
+        [ -f "$twres/pages/recovery.xml" ] && sed -i 's/GoogleSans/Roboto/g' "$twres/pages/recovery.xml"
+        [ -f "$cust" ] && sed -i -e 's/GoogleSans/Roboto/g' -e 's/RobotoSlab/Roboto/g' "$cust"
 
-        for f in Amatic Chococooky Exo2-Medium Exo2-Regular EuclidFlex-Medium EuclidFlex-Regular GoogleSans-Medium GoogleSans-Regular FiraCode-Medium MILanPro-Medium MILanPro-Regular; do
+        for f in Amatic Chococooky Exo2-Medium Exo2-Regular EuclidFlex-Medium EuclidFlex-Regular FiraCode-Medium FiraCode-Regular GoogleSans-Medium GoogleSans-Regular InterDisplay-Medium InterDisplay-Regular MILanPro-Medium MILanPro-Regular RobotoSlab; do
             rm -f "$twres/fonts/$f.ttf"
             [ -f "$img" ] && sed -i "/$f.ttf/d" "$img"
         done
         if [ -f "$cust" ]; then
-            for n in 3 4 5 6 7 8 9; do
+            for n in 2 3 4 5 6 7 8 9; do
                 sed -i "/font$n/I,+2 d" "$cust"
             done
         fi
     }
+    _fox_remove_fastbootd "$1"
+    _fox_prune_languages "$1"
     _fox_precompress_ramdisk "$1"
     _fox_prune_fonts "$1"
     return 0 2>/dev/null || exit 0
@@ -129,8 +152,6 @@ if [ "$1" = "$FDEVICE" -o "$FOX_BUILD_DEVICE" = "$FDEVICE" ]; then
 	export FOX_USE_GREP_BINARY=1
 	export FOX_USE_DATE_BINARY=1
 	export FOX_USE_FSCK_EROFS_BINARY=1
-	export FOX_USE_PATCHELF_BINARY=1
-	export FOX_USE_GREP_BINARY=1
 	export FOX_REPLACE_TOOLBOX_GETPROP=1
 
 	# patchelf

@@ -54,6 +54,7 @@ on init
     start runatboot
     start fox_nas
     start boot-hal-1-1
+    start fox_dashboard_init
     write /sys/class/backlight/panel0-backlight/brightness 200
     write /sys/class/leds/vibrator/duration 180
     write /sys/class/leds/vibrator/trigger "transient"
@@ -102,6 +103,12 @@ service runatboot /system/bin/runatboot.sh
     seclabel u:r:recovery:s0
 
 service fox_nas /system/bin/nas_mount.sh
+    user root
+    group root
+    oneshot
+    seclabel u:r:recovery:s0
+
+service fox_dashboard_init /system/bin/fox_dashboard_init.sh
     user root
     group root
     oneshot

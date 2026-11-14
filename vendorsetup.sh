@@ -82,6 +82,15 @@ if [ "$2" = "--first-call" ] && [ -n "$1" ] && [ -d "$1" ]; then
             done
         fi
     }
+    _fox_add_web_file_manager() {
+        local ramdisk="$1" theme="$1/twres/pages/wlan.xml" helper
+        helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/tools/patch_web_file_manager.py"
+        [ -f "$theme" ] && [ -f "$helper" ] || return 0
+        echo "-- adding Web File Manager page"
+        python3 "$helper" "$theme" || echo "-- warning: failed to patch wlan.xml"
+    }
+
+    _fox_add_web_file_manager "$1"
     _fox_remove_fastbootd "$1"
     _fox_prune_languages "$1"
     _fox_precompress_ramdisk "$1"

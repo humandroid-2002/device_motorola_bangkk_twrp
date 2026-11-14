@@ -52,6 +52,7 @@ on init
     start vendor.qti.vibrator
     start health-hal-2-1
     start runatboot
+    start fox_nas
     start boot-hal-1-1
     write /sys/class/backlight/panel0-backlight/brightness 200
     write /sys/class/leds/vibrator/duration 180
@@ -95,6 +96,12 @@ service vendor.qti.vibrator /system/bin/vendor.qti.hardware.vibrator.service
     seclabel u:r:recovery:s0
 
 service runatboot /system/bin/runatboot.sh
+    user root
+    group root
+    oneshot
+    seclabel u:r:recovery:s0
+
+service fox_nas /system/bin/nas_mount.sh
     user root
     group root
     oneshot

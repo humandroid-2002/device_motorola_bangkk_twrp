@@ -49,6 +49,17 @@ on early-fs
     write /proc/sys/kernel/sched_lib_mask_force 255
 
 on init
+    mkdir /dev/cpuset/foreground 0755 system system
+    write /dev/cpuset/foreground/cpus 0-7
+    write /dev/cpuset/foreground/mems 0
+    mkdir /dev/cpuset/system-background 0755 system system
+    write /dev/cpuset/system-background/cpus 0-7
+    write /dev/cpuset/system-background/mems 0
+    mkdir /dev/cpuset/top-app 0755 system system
+    write /dev/cpuset/top-app/cpus 0-7
+    write /dev/cpuset/top-app/mems 0
+    mkdir /dev/cpuctl/foreground 0755 system system
+    mkdir /dev/cpuctl/top-app 0755 system system
     start vendor.qti.vibrator
     start health-hal-2-1
     start runatboot
@@ -95,29 +106,34 @@ service vendor.qti.vibrator /system/bin/vendor.qti.hardware.vibrator.service
     group root
     setenv LD_LIBRARY_PATH /vendor/lib64:/system/lib64
     seclabel u:r:recovery:s0
+    task_profiles CPUSET_SP_FOREGROUND
 
 service runatboot /system/bin/runatboot.sh
     user root
     group root
     oneshot
     seclabel u:r:recovery:s0
+    task_profiles CPUSET_SP_FOREGROUND
 
 service microhttpd /system/bin/microhttpd
     user root
     group root
     disabled
     seclabel u:r:recovery:s0
+    task_profiles CPUSET_SP_FOREGROUND
 
 service fox_nas /system/bin/nas_mount.sh
     user root
     group root
     oneshot
     seclabel u:r:recovery:s0
+    task_profiles ServiceCapacityLow
 
 service fox_dashboard_init /system/bin/fox_dashboard_init.sh
     user root
     group root
     oneshot
     seclabel u:r:recovery:s0
+    task_profiles CPUSET_SP_FOREGROUND
 
 import /init.recovery.wifi.rc

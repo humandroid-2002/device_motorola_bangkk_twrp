@@ -29,6 +29,7 @@ service gatekeeper-1-0-qti /system/bin/android.hardware.gatekeeper@1.0-service-q
     setenv LD_LIBRARY_PATH /vendor/lib64:/vendor/lib:/system/lib64:/system/lib:/sbin
     disabled
     seclabel u:r:recovery:s0
+    task_profiles CPUSET_SP_FOREGROUND
 
 service keystore_auth /system/bin/keystore_auth
     oneshot
@@ -36,6 +37,7 @@ service keystore_auth /system/bin/keystore_auth
     group root
     disabled
     seclabel u:r:recovery:s0
+    task_profiles CPUSET_SP_FOREGROUND
 
 # keystore is started and stopped on demand by TWRP
 service keystore /system/bin/keystore /tmp/misc/keystore
@@ -43,3 +45,4 @@ service keystore /system/bin/keystore /tmp/misc/keystore
     group root drmrpc readproc log
     disabled
     seclabel u:r:recovery:s0
+    task_profiles CPUSET_SP_FOREGROUND

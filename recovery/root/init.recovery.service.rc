@@ -5,3 +5,4 @@ on boot
 service recovery /system/bin/recovery
     socket recovery stream 422 system system
     seclabel u:r:recovery:s0
+    task_profiles CPUSET_SP_TOP_APP

@@ -27,7 +27,7 @@ LOGMSG "post_rom_flash_completion: will reflash OrangeFox and activate slot ${NE
 # The recovery operation is still in progress while this script runs, so
 # calling fox directly here fails with "operation in progress". Defer the
 # exact "Flash current OrangeFox" action until the operation has finished.
-nohup /system/bin/sh -c "sleep 8; /system/bin/fox reflash run; /system/bin/bootctl set-active-boot-slot ${NEW_SLOT}" \
+nohup /system/bin/sh -c "sleep 2; /system/bin/fox reflash run; /system/bin/bootctl set-active-boot-slot ${NEW_SLOT}" \
     >/tmp/post_rom_flash_completion.log 2>&1 &
 
 exit 0

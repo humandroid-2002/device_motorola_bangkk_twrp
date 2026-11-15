@@ -63,6 +63,7 @@ service vendor.qrtr-ns /system/bin/qrtr-ns -f
     capabilities NET_BIND_SERVICE
     setenv LD_LIBRARY_PATH /vendor/lib64:/system/lib64
     seclabel u:r:recovery:s0
+    task_profiles CPUSET_SP_FOREGROUND
 
 # rmt_storage must run before anything boots the modem. The wrapper stages
 # the EFS partitions in RAM and bind-mounts them over by-name in a private
@@ -74,6 +75,7 @@ service vendor.rmt_storage /system/bin/rmt_storage_ro.sh
     namespace mnt
     setenv LD_LIBRARY_PATH /vendor/lib64:/system/lib64
     seclabel u:r:recovery:s0
+    task_profiles CPUSET_SP_FOREGROUND
 
 service vendor.tftp_server /system/bin/tftp_server
     user root
@@ -81,6 +83,7 @@ service vendor.tftp_server /system/bin/tftp_server
     disabled
     setenv LD_LIBRARY_PATH /vendor/lib64:/system/lib64
     seclabel u:r:recovery:s0
+    task_profiles CPUSET_SP_FOREGROUND
 
 service vendor.pd_mapper /system/bin/pd-mapper
     user root
@@ -88,6 +91,7 @@ service vendor.pd_mapper /system/bin/pd-mapper
     disabled
     setenv LD_LIBRARY_PATH /vendor/lib64:/system/lib64
     seclabel u:r:recovery:s0
+    task_profiles CPUSET_SP_FOREGROUND
 
 service vendor.per_mgr /system/bin/pm-service
     user root
@@ -95,6 +99,7 @@ service vendor.per_mgr /system/bin/pm-service
     disabled
     setenv LD_LIBRARY_PATH /vendor/lib64:/system/lib64
     seclabel u:r:recovery:s0
+    task_profiles CPUSET_SP_FOREGROUND
 
 service vendor.per_proxy /system/bin/pm-proxy
     user root
@@ -102,6 +107,7 @@ service vendor.per_proxy /system/bin/pm-proxy
     disabled
     setenv LD_LIBRARY_PATH /vendor/lib64:/system/lib64
     seclabel u:r:recovery:s0
+    task_profiles CPUSET_SP_FOREGROUND
 
 service cnss-daemon /system/bin/cnss_daemon.sh -n -l
     user root
@@ -113,6 +119,7 @@ service cnss-daemon /system/bin/cnss_daemon.sh -n -l
     namespace mnt
     setenv LD_LIBRARY_PATH /vendor/lib64:/system/lib64
     seclabel u:r:recovery:s0
+    task_profiles CPUSET_SP_FOREGROUND
 
 service wlan_loader /system/bin/wlan_loader.sh
     user root
@@ -120,6 +127,7 @@ service wlan_loader /system/bin/wlan_loader.sh
     oneshot
     disabled
     seclabel u:r:recovery:s0
+    task_profiles CPUSET_SP_FOREGROUND
 
 service wifi_stack /system/bin/wifi_stack.sh
     user root
@@ -127,6 +135,7 @@ service wifi_stack /system/bin/wifi_stack.sh
     oneshot
     disabled
     seclabel u:r:recovery:s0
+    task_profiles CPUSET_SP_FOREGROUND
 
 service wpa_supplicant /system/bin/wpa_supplicant -Dnl80211 -iwlan0 -dd -O/tmp/recovery/sockets -c/vendor/etc/wifi/wpa_supplicant.conf
     user root
@@ -134,3 +143,4 @@ service wpa_supplicant /system/bin/wpa_supplicant -Dnl80211 -iwlan0 -dd -O/tmp/r
     disabled
     setenv LD_LIBRARY_PATH /vendor/lib64:/vendor/lib64/hw:/system/lib64
     seclabel u:r:recovery:s0
+    task_profiles CPUSET_SP_FOREGROUND

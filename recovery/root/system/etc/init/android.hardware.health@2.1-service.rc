@@ -5,3 +5,4 @@ service health-hal-2-1 /system/bin/android.hardware.health@2.1-service
     capabilities WAKE_ALARM
     file /dev/kmsg w
     seclabel u:r:recovery:s0
+    task_profiles ServiceCapacityLow

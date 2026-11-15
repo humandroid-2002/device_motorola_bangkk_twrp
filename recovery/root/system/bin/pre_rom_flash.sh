@@ -112,10 +112,12 @@ do_sysfs_tune() {
         echo 0 > "$q/rotational" 2>/dev/null
         echo 1024 > "$q/nr_requests" 2>/dev/null
         echo 0 > "$q/iostats" 2>/dev/null
+        echo 0 > "$q/wbt_lat_usec" 2>/dev/null
+        echo 2 > "$q/rq_affinity" 2>/dev/null
     done
 
     # Scheduler and memory tuning for burst throughput.
-    echo 0 > /proc/sys/kernel/sched_boost 2>/dev/null
+    echo 1 > /proc/sys/kernel/sched_boost 2>/dev/null
     echo 0 > /proc/sys/kernel/sched_child_runs_first 2>/dev/null
     echo 1 > /proc/sys/vm/swappiness 2>/dev/null
     echo 5 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null

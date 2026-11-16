@@ -76,8 +76,8 @@ BOARD_KERNEL_IMAGE_NAME := Image
 BOARD_RAMDISK_USE_LZ4   := true
 
 # Keep only required modules; we're almost on size limit (Touch,Battery and Haptics)
-TW_LOAD_PREBUILT_MODULES_AT_FIRST := true
-TW_LOAD_VENDOR_MODULES := "bq25980_mmi_iio.ko exfat.ko focaltech_v3.ko goodix_brl_mmi.ko ldo_vibrator_mmi.ko mmi_annotate.ko mmi_info.ko mmi_parallel_charger_iio.ko mmi_relay.ko mmi-smbcharger-iio.ko sensors_class.ko touchscreen_mmi.ko"
+#TW_LOAD_PREBUILT_MODULES_AT_FIRST := true
+#TW_LOAD_VENDOR_MODULES := "bq25980_mmi_iio.ko exfat.ko focaltech_v3.ko goodix_brl_mmi.ko ldo_vibrator_mmi.ko mmi_annotate.ko mmi_info.ko mmi_parallel_charger_iio.ko mmi_relay.ko mmi-smbcharger-iio.ko sensors_class.ko touchscreen_mmi.ko"
 
 BOARD_KERNEL_PAGESIZE      := 4096
 BOARD_FLASH_BLOCK_SIZE     := 262144 # (BOARD_KERNEL_PAGESIZE * 64)

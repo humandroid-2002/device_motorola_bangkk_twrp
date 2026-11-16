@@ -184,9 +184,6 @@ check_dynamic()
 
 check_encrypt()
 {
-	if [ "$sdkver" -ge 26 ]; then
-		sleep 1
-	fi
 	encrypt_type=$(getprop ro.crypto.type)
 	if [ "$encrypt_type" = "file" ]; then
 		log_print 1 "File Based Encryption (FBE) is present."

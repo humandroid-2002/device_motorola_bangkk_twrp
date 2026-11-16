@@ -86,14 +86,13 @@ on fs
     start vendor.rmt_storage
     mkdir /mnt/vendor/persist 0755
     mount ext4 /dev/block/bootdevice/by-name/persist /mnt/vendor/persist ro
-    wait /dev/block/bootdevice/by-name/modem${ro.boot.slot_suffix} 10
+    wait /dev/block/bootdevice/by-name/modem${ro.boot.slot_suffix} 1
     mount ext4 /dev/block/bootdevice/by-name/modem${ro.boot.slot_suffix} /firmware ro
 
 on property:twrp.modules.loaded=true
     # Load ADSP firmware for PMIC
-    wait /sys/kernel/boot_adsp/boot 2
+    wait /sys/kernel/boot_adsp/boot 1
     write /sys/kernel/boot_adsp/boot 1
-    wait /sys/class/power_supply/battery 2
 
 service set_permissive /system/bin/set_permissive.sh
     user root

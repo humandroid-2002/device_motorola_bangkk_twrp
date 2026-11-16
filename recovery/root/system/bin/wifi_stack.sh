@@ -6,6 +6,17 @@ log() {
     echo "[OF-WIFI] $1" >> "$LOG"
 }
 
+i=0
+while [ ! -d /sys/module/adsp_loader_dlkm ] && [ "$i" -lt 3 ]; do
+    sleep 1
+    i=$((i + 1))
+done
+
+if [ ! -d /sys/module/adsp_loader_dlkm ]; then
+    log "ADSP loader module not loaded; skipping WiFi bring-up"
+    exit 0
+fi
+
 wait_prop() {
     key="$1"
     value="$2"
@@ -40,6 +51,11 @@ while [ "$i" -lt 30 ]; do
     i=$((i + 1))
 done
 log "ADSP online=$adsp_online after ${i}s"
+
+if [ "$adsp_online" != "1" ]; then
+    log "ADSP offline; skipping per_mgr/cnss-daemon to avoid modem reset"
+    exit 0
+fi
 
 setprop ctl.start vendor.per_mgr
 wait_prop init.svc.vendor.per_mgr running 10

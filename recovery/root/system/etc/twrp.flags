@@ -41,7 +41,6 @@
 /logfs                 vfat    /dev/block/bootdevice/by-name/logfs                                  flags=display="LogFS (UEFI)";fsflags="umask=006,uid=1000,gid=1000,utf8"
 
 # Other partitions
-/cache                 ext4    /dev/block/bootdevice/by-name/rescue                                 flags=display="Cache";formattable;wipeduringfactoryreset
 /misc                  emmc    /dev/block/bootdevice/by-name/misc
 /frp                   emmc    /dev/block/bootdevice/by-name/frp                                    flags=display="FRP";wipeingui
 

@@ -2,6 +2,7 @@
 
 LOG="/tmp/recovery.log"
 MODULE="/tmp/lib/modules/wlan.ko"
+[ -f "$MODULE" ] || MODULE="/tmp/lib/modules/qca_cld3_wlan.ko"
 SLOT="$(getprop ro.boot.slot_suffix)"
 MODEM="/dev/block/bootdevice/by-name/modem${SLOT}"
 
@@ -31,17 +32,17 @@ while [ "$(getprop init.svc.cnss-daemon)" != "running" ] && [ "$i" -lt 20 ]; do
 done
 
 i=0
-while [ ! -f "$MODULE" ] && [ "$i" -lt 30 ]; do
+while [ ! -f "$MODULE" ] && [ ! -d /sys/module/wlan ] && [ "$i" -lt 30 ]; do
     sleep 1
     i=$((i + 1))
 done
-if [ ! -f "$MODULE" ]; then
+if [ ! -f "$MODULE" ] && [ ! -d /sys/module/wlan ]; then
     log "ERROR: $MODULE missing"
     exit 1
 fi
 
 if [ ! -d /sys/module/wlan ]; then
-    # runatboot.sh loads wlan.ko early; this is only a fallback.
+    # runatboot.sh loads wlan.ko/qca_cld3_wlan.ko early; this is only a fallback.
     log "wlan not loaded, insmod fallback"
     insmod "$MODULE" >> "$LOG" 2>&1
 else

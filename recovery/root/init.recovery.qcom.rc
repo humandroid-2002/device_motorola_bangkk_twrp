@@ -28,6 +28,14 @@
 import /init.recovery.qcom_decrypt.rc
 import /init.recovery.service.rc
 
+service mount_rom_icu /system/bin/sh /system/bin/mount_rom_icu.sh
+    class core
+    user root
+    group root
+    oneshot
+    disabled
+    seclabel u:r:recovery:s0
+
 on early-init
     write /sys/fs/selinux/enforce 0
     start set_permissive
@@ -49,6 +57,9 @@ on early-fs
     write /proc/sys/kernel/sched_lib_mask_force 255
 
 on init
+    export ANDROID_I18N_ROOT /system
+    export ANDROID_TZDATA_ROOT /apex/com.android.tzdata
+    start mount_rom_icu
     mkdir /dev/cpuset/foreground 0755 system system
     write /dev/cpuset/foreground/cpus 0-7
     write /dev/cpuset/foreground/mems 0

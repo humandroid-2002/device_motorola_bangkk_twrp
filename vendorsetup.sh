@@ -49,6 +49,13 @@ if [ "$2" = "--first-call" ] && [ -n "$1" ] && [ -d "$1" ]; then
               "$ramdisk/system/lib64/fastboot-V1-ndk.so" \
               "$ramdisk/res/images/fastbootd.png"
     }
+    # ICU libs are bind-mounted
+    _fox_remove_icu() {
+        local ramdisk="$1"
+        rm -f "$ramdisk/system/lib64/libandroidicu.so" \
+              "$ramdisk/system/lib64/libicui18n.so" \
+              "$ramdisk/system/lib64/libicuuc.so"
+    }
     _fox_prune_languages() {
         local ramdisk="$1" f
         [ -d "$ramdisk/twres/languages" ] || return 0
@@ -92,6 +99,7 @@ if [ "$2" = "--first-call" ] && [ -n "$1" ] && [ -d "$1" ]; then
 
     _fox_add_web_file_manager "$1"
     _fox_remove_fastbootd "$1"
+    _fox_remove_icu "$1"
     _fox_prune_languages "$1"
     _fox_precompress_ramdisk "$1"
     _fox_prune_fonts "$1"

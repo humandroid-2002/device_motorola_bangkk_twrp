@@ -155,6 +155,8 @@ export PATH=/system/bin:/system/xbin:/sbin:$PATH
 # Recovery UI output goes to stdout; menus still use Volume Up/Down.
 terminal_on=false
 boot_on=false
+REFLASH_RECOVERY_ON_SUCCESS=false
+REFLASH_RECOVERY_RESULT=1
 
 ui_print() {
     echo -e "$*"
@@ -173,8 +175,31 @@ abortF() {
     rm -rf "$TMP_NEO" "$TMP_IMGS" &>>/dev/null
     exit $1
 }
+flash_current_recovery() {
+    if [ ! -x /system/bin/fox ]; then
+        my_print "Recovery flash skipped: /system/bin/fox not found"
+        return 1
+    fi
+    my_print "Flashing current recovery..."
+    /system/bin/fox reflash run &>>"$LOG"
+    rc=$?
+    if [ "$rc" -ne 0 ]; then
+        my_print "Recovery flash failed (rc=$rc); reboot cancelled"
+        return 1
+    fi
+    sync
+    my_print "Recovery flashed successfully"
+    return 0
+}
 abortS() {
     my_print "Complete"
+    if $REFLASH_RECOVERY_ON_SUCCESS; then
+        flash_current_recovery
+        REFLASH_RECOVERY_RESULT=$?
+        if [ "$REFLASH_RECOVERY_RESULT" -eq 0 ]; then
+            my_print "Rebooting to recovery..."
+        fi
+    fi
     [ -d $NEO_LOGS ] || mkdir -p $NEO_LOGS &>>$LOG
     logM="Success-$VER-$(date +%T | sed 's|\:|-|g').txt"
     cat $LOG >$NEO_LOGS/$logM
@@ -184,6 +209,12 @@ abortS() {
     my_print "Output log $NEO_LOGS/$logM"
     rm -rf $TMP_NEO &>>/dev/null
     rm -rf $TMP_IMGS
+    if $REFLASH_RECOVERY_ON_SUCCESS && [ "$REFLASH_RECOVERY_RESULT" -eq 0 ]; then
+        sync
+        # the script will reboot automatically to ensure partitions are properly defined.
+        sleep 2
+        reboot recovery
+    fi
     exit 0
 }
 calc_int() {
@@ -2076,5 +2107,7 @@ fi
 $terminal_on || {
     my_print "If you see \"Failed to mount /part (Invalid-argument)\" then this is normal, you need to restart recovery so that the partitions are defined correctly"
 }
+
+REFLASH_RECOVERY_ON_SUCCESS=true
 abortS
 exit 0

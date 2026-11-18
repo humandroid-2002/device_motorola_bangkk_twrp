@@ -6,6 +6,10 @@ export PATH=/system/bin:/sbin:/vendor/bin
 ROOT=/romicu
 LOG=/tmp/recovery.log
 TAG=mount_rom_icu
+CACHE_IMG="/firmware/of_cache.img"
+CACHE_MNT="/cache"
+CACHE_LIBS="$CACHE_MNT/icu/lib64"
+ICU_LIBS="libandroidicu.so libicui18n.so libicuuc.so"
 
 mkdir -p "$ROOT"
 
@@ -19,13 +23,116 @@ log_err() {
     echo "E:$TAG: $1" >> "$LOG" 2>/dev/null
 }
 
+CACHE_WRITABLE=0
+
+cache_complete() {
+    for lib in $ICU_LIBS; do
+        [ -f "$CACHE_LIBS/$lib" ] || return 1
+    done
+    return 0
+}
+
+setup_cache() {
+    n=0
+    while [ ! -d /firmware ] && [ "$n" -lt 10 ]; do
+        sleep 1
+        n=$((n + 1))
+    done
+
+    if [ ! -d /firmware ]; then
+        log_err "/firmware not available; ICU cache disabled"
+        return 1
+    fi
+
+    mkdir -p "$CACHE_MNT"
+
+    if mountpoint -q "$CACHE_MNT"; then
+        if ! cache_complete; then
+            mount -o remount,rw /firmware >> "$LOG" 2>&1 || log_err "cannot remount /firmware rw"
+            mount -o remount,rw "$CACHE_MNT" >> "$LOG" 2>&1 || return 1
+            mkdir -p "$CACHE_LIBS" >> "$LOG" 2>&1 || return 1
+            CACHE_WRITABLE=1
+        fi
+        return 0
+    fi
+
+    if [ -f "$CACHE_IMG" ]; then
+        if mount -o loop,ro "$CACHE_IMG" "$CACHE_MNT" >> "$LOG" 2>&1; then
+            if cache_complete; then
+                log "mounted ICU cache $CACHE_IMG read-only on $CACHE_MNT"
+                return 0
+            fi
+            umount "$CACHE_MNT" 2>/dev/null || true
+        fi
+    fi
+
+    mount -o remount,rw /firmware >> "$LOG" 2>&1 || {
+        log_err "cannot remount /firmware rw"
+        return 1
+    }
+
+    if [ ! -f "$CACHE_IMG" ]; then
+        if ! truncate -s 8M "$CACHE_IMG" >> "$LOG" 2>&1; then
+            dd if=/dev/zero of="$CACHE_IMG" bs=1048576 count=8 >> "$LOG" 2>&1 || {
+                log_err "cannot create $CACHE_IMG"
+                return 1
+            }
+        fi
+        mkfs.ext4 -F -I 256 "$CACHE_IMG" >> "$LOG" 2>&1 || {
+            log_err "cannot format $CACHE_IMG"
+            return 1
+        }
+        log "created 8MB ICU cache image $CACHE_IMG"
+    fi
+
+    LOOP="$(losetup -f 2>/dev/null)"
+    if [ -n "$LOOP" ] && losetup "$LOOP" "$CACHE_IMG" >> "$LOG" 2>&1 && mount -o rw "$LOOP" "$CACHE_MNT" >> "$LOG" 2>&1; then
+        log "mounted ICU cache $CACHE_IMG on $CACHE_MNT via $LOOP"
+    elif mount -o loop,rw "$CACHE_IMG" "$CACHE_MNT" >> "$LOG" 2>&1; then
+        log "mounted ICU cache $CACHE_IMG on $CACHE_MNT"
+    else
+        log_err "cannot mount ICU cache"
+        return 1
+    fi
+
+    mkdir -p "$CACHE_LIBS" >> "$LOG" 2>&1 || return 1
+    CACHE_WRITABLE=1
+    return 0
+}
+
+save_cache_libs() {
+    src="$1"
+    lib=""
+
+    if [ "$CACHE_WRITABLE" != "1" ]; then
+        mount -o remount,rw /firmware >> "$LOG" 2>&1 || log_err "cannot remount /firmware rw"
+        mount -o remount,rw "$CACHE_MNT" >> "$LOG" 2>&1 || return 1
+        CACHE_WRITABLE=1
+    fi
+
+    [ -d "$CACHE_LIBS" ] || mkdir -p "$CACHE_LIBS" >> "$LOG" 2>&1 || return 1
+
+    for lib in $ICU_LIBS; do
+        [ -f "$src/$lib" ] || return 1
+    done
+
+    for lib in $ICU_LIBS; do
+        cp -f "$src/$lib" "$CACHE_LIBS/$lib" >> "$LOG" 2>&1 || return 1
+    done
+
+    log "cached ICU libs in $CACHE_LIBS"
+    return 0
+}
+
 bind_icu_from() {
     src="$1"
-    [ -f "$src/libandroidicu.so" ] || return 1
-    [ -f "$src/libicui18n.so" ] || return 1
-    [ -f "$src/libicuuc.so" ] || return 1
+    [ -d "$src" ] || return 1
 
-    for lib in libandroidicu.so libicui18n.so libicuuc.so; do
+    for lib in $ICU_LIBS; do
+        [ -f "$src/$lib" ] || return 1
+    done
+
+    for lib in $ICU_LIBS; do
         dst="/system/lib64/$lib"
         if [ ! -e "$dst" ]; then
             touch "$dst" 2>/dev/null || return 1
@@ -36,17 +143,6 @@ bind_icu_from() {
         log "bind-mounted $lib from $src"
     done
 
-    icu_etc="${src%/lib64}/etc/icu"
-    if [ -d "$icu_etc" ]; then
-        mkdir -p /system/etc/icu 2>/dev/null
-        if mount -o bind "$icu_etc" /system/etc/icu 2>/dev/null; then
-            log "bind-mounted ICU data from $icu_etc"
-        else
-            log_err "failed to bind ICU data from $icu_etc"
-        fi
-    else
-        log_err "ICU data directory not found at $icu_etc"
-    fi
     return 0
 }
 
@@ -72,9 +168,14 @@ detect_fs_type() {
     return 1
 }
 
-for src in /apex/com.android.i18n/lib64 /bootstrap-apex/com.android.i18n/lib64; do
+setup_cache || true
+
+for src in "$CACHE_LIBS" /apex/com.android.i18n/lib64 /bootstrap-apex/com.android.i18n/lib64; do
     if bind_icu_from "$src"; then
-        log "using mounted ROM i18n APEX at $src"
+        if [ "$src" != "$CACHE_LIBS" ]; then
+            save_cache_libs "$src" || true
+        fi
+        log "using ICU libs from $src"
         exit 0
     fi
 done
@@ -202,6 +303,7 @@ if ! mount -o ro "$ROOT/i18n.img" "$ROOT/i18n" 2>/dev/null; then
 fi
 
 if bind_icu_from "$ROOT/i18n/lib64"; then
+    save_cache_libs "$ROOT/i18n/lib64" || true
     log "using ROM i18n APEX at $APEX"
     exit 0
 fi

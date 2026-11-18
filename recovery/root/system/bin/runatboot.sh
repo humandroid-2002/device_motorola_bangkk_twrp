@@ -1,275 +1,312 @@
 #!/system/bin/sh
 
-SRC_MODULES_DIR="/vendor/lib/modules"
-MODULES_DIR="/tmp/lib/modules"
-FW_DIR="/vendor/firmware"
 LOG="/tmp/recovery.log"
+VENDOR="/vendor"
+VENDOR_MNT="$VENDOR"
+PREBUILT_MODULES_DIR="/system/etc/prebuilt_modules"
+MODULES_DIR="/tmp/lib/modules"
+SLOT="$(getprop ro.boot.slot_suffix)"
+[ -n "$SLOT" ] || SLOT="_a"
+VENDOR_MOUNTED=0
+MODULE_SOURCE=""
+LOAD_STACK=""
 
 log() {
     echo "[OF-MODULES] $1" >> "$LOG"
 }
 
-log "Mounting /vendor..."
-mount /vendor >> "$LOG" 2>&1
+mount_vendor_dev() {
+    local dev="$1"
+    local target="$2"
+    local fs
 
-# Attende che vendor sia effettivamente disponibile.
-while [ ! -d "$SRC_MODULES_DIR" ]; do
-    sleep 1
-done
+    for fs in erofs ext4; do
+        if mount -t "$fs" -o ro "$dev" "$target" 2>>"$LOG"; then
+            log "Mounted $dev on $target as $fs"
+            return 0
+        fi
+    done
 
-log "Vendor modules directory found: $SRC_MODULES_DIR"
+    if mount -o ro "$dev" "$target" 2>>"$LOG"; then
+        log "Mounted $dev on $target"
+        return 0
+    fi
+
+    return 1
+}
+
+find_vendor_device() {
+    local part
+    local dev
+    local out
+    local dm
+
+    for dev in \
+        "/dev/block/mapper/vendor${SLOT}" \
+        "/dev/block/mapper/vendor" \
+        "/dev/block/by-name/vendor${SLOT}" \
+        "/dev/block/by-name/vendor" \
+        "/dev/block/bootdevice/by-name/vendor${SLOT}" \
+        "/dev/block/bootdevice/by-name/vendor"
+    do
+        [ -b "$dev" ] && { echo "$dev"; return 0; }
+    done
+
+    if command -v lptools >/dev/null 2>&1; then
+        for part in "vendor${SLOT}" "vendor"; do
+            out="$(lptools map "$part" 2>&1)"
+            log "$out"
+            dev="$(printf '%s\n' "$out" | sed -n 's/.* at \(\/dev\/block\/dm-[0-9][0-9]*\).*/\1/p' | tail -n 1)"
+
+            if [ -z "$dev" ]; then
+                for dm in /sys/block/dm-*; do
+                    [ "$(cat "$dm/dm/name" 2>/dev/null)" = "$part" ] || continue
+                    dev="/dev/block/${dm##*/}"
+                    break
+                done
+            fi
+
+            [ -n "$dev" ] && { echo "$dev"; return 0; }
+        done
+    fi
+
+    return 1
+}
+
+copy_modules_from() {
+    local src="$1"
+    local f
+
+    log "Copying modules from $src"
+    if [ -f "$src/modules.load" ]; then
+        for f in "$src"/*.ko "$src"/modules.*; do
+            [ -f "$f" ] || continue
+            if ! cp -aL "$f" "$MODULES_DIR"/ >> "$LOG" 2>&1; then
+                log "ERROR: copy failed for $f"
+                return 1
+            fi
+        done
+    else
+        find "$src" -type f -name '*.ko' \
+            -exec cp -aL {} "$MODULES_DIR"/ \; >> "$LOG" 2>&1
+        for f in "$src"/modules.*; do
+            [ -f "$f" ] || continue
+            cp -aL "$f" "$MODULES_DIR"/ >> "$LOG" 2>&1
+        done
+    fi
+
+    find "$MODULES_DIR" -type f -name '*.ko' -print | grep -q '\.ko$'
+}
+
+prepare_prebuilt_modules() {
+    if [ -d "$PREBUILT_MODULES_DIR" ] && copy_modules_from "$PREBUILT_MODULES_DIR"; then
+        MODULE_SOURCE="prebuilt"
+        log "Using prebuilt modules"
+        return 0
+    fi
+
+    if [ -d "$VENDOR/lib/modules/1.1" ] && copy_modules_from "$VENDOR/lib/modules/1.1"; then
+        MODULE_SOURCE="ramdisk"
+        log "Using recovery ramdisk modules"
+        return 0
+    fi
+
+    return 1
+}
+
+prepare_stock_modules() {
+    if ! mountpoint -q "$VENDOR"; then
+        log "Mounting $VENDOR..."
+        if mount "$VENDOR" >> "$LOG" 2>&1; then
+            VENDOR_MNT="$VENDOR"
+            VENDOR_MOUNTED=1
+        else
+            vendor_dev="$(find_vendor_device)"
+            if [ -n "$vendor_dev" ]; then
+                if mount_vendor_dev "$vendor_dev" "$VENDOR"; then
+                    VENDOR_MNT="$VENDOR"
+                    VENDOR_MOUNTED=1
+                else
+                    mkdir -p /tmp/vendor
+                    if mount_vendor_dev "$vendor_dev" "/tmp/vendor"; then
+                        VENDOR_MNT="/tmp/vendor"
+                        VENDOR_MOUNTED=1
+                    else
+                        log "WARNING: cannot mount $vendor_dev"
+                    fi
+                fi
+            else
+                log "WARNING: vendor partition not found"
+            fi
+        fi
+    else
+        VENDOR_MNT="$VENDOR"
+        VENDOR_MOUNTED=1
+    fi
+
+    if [ -d "$VENDOR_MNT/lib/modules" ] && copy_modules_from "$VENDOR_MNT/lib/modules"; then
+        MODULE_SOURCE="stock"
+        log "Using vendor modules"
+        return 0
+    fi
+
+    log "No vendor modules found"
+    return 1
+}
 
 mkdir -p /tmp/lib
-
 rm -rf "$MODULES_DIR"
-
 mkdir -p "$MODULES_DIR" || {
-    log "ERROR: Cannot create $MODULES_DIR"
+    log "ERROR: cannot create $MODULES_DIR"
     exit 1
 }
 
-log "Starting complete modules copy..."
-
-# -a conserva gli attributi; -L segue i link simbolici,
-# così i file restano accessibili anche dopo lo smontaggio
-# di /vendor.
-if cp -aL "$SRC_MODULES_DIR"/. "$MODULES_DIR"/ >> "$LOG" 2>&1; then
-    log "Modules copy completed successfully."
-else
-    log "ERROR: Modules copy failed; keeping /vendor mounted."
-    exit 1
+if ! prepare_stock_modules; then
+    prepare_prebuilt_modules || true
 fi
 
-# La copia è sincrona: a questo punto cp è terminato.
-# Verifica che siano presenti file .ko nella destinazione.
-if ! find "$MODULES_DIR" -type f -name '*.ko' -print | grep -q '\.ko$'; then
-    log "ERROR: No .ko files found in $MODULES_DIR"
-    exit 1
+if [ "$VENDOR_MOUNTED" = "1" ] && mountpoint -q "$VENDOR_MNT"; then
+    log "Unmounting $VENDOR_MNT..."
+    if umount "$VENDOR_MNT" >> "$LOG" 2>&1 || umount -l "$VENDOR_MNT" >> "$LOG" 2>&1; then
+        log "$VENDOR_MNT detached successfully"
+    else
+        log "WARNING: cannot unmount $VENDOR_MNT"
+    fi
 fi
 
-log "Verified copied kernel modules."
-if [ -d "$FW_DIR" ]; then
-    log "Vendor firmware directory present before unmount."
-else
-    log "WARNING: Vendor firmware directory not found."
-fi
+ensure_firmware_path() {
+    local path="$1"
+    local target="$2"
 
-log "Unmounting /vendor..."
+    if [ -d "$path" ] && [ -n "$(ls -A "$path" 2>/dev/null)" ]; then
+        log "Keeping $path"
+        return 0
+    fi
 
-if umount -l /vendor >> "$LOG" 2>&1; then
-    log "/vendor detached successfully."
-else
-    log "WARNING: umount -l /vendor failed."
-fi
+    if [ -e "$path" ] || [ -L "$path" ]; then
+        rm -rf "$path" >> "$LOG" 2>&1
+    fi
+
+    if ln -s "$target" "$path" >> "$LOG" 2>&1; then
+        log "Linked $path -> $target"
+    else
+        log "WARNING: cannot link $path -> $target"
+    fi
+}
+
+ensure_firmware_path "$VENDOR/firmware" "/firmware"
+ensure_firmware_path "$VENDOR/firmware_mnt" "/firmware_mnt"
 
 load_mod() {
     local mod="$1"
-    local path="$MODULES_DIR/$mod.ko"
+    local sysname
+    local path
 
-    if [ -f "$path" ]; then
-        if ! grep -q "^$mod " /proc/modules 2>/dev/null; then
-            if insmod "$path"; then
-                log "Loaded $mod from $path"
-            else
-                log "Failed to load $mod from $path"
-            fi
-        else
-            log "Already loaded: $mod"
-        fi
+    sysname="$(printf '%s' "$mod" | tr '-' '_')"
+
+    if [ "$mod" = "qca_cld3_wlan" ] && [ -d /sys/module/wlan ]; then
+        log "Already loaded: $mod"
+        return 0
+    fi
+
+    if [ -d "/sys/module/$sysname" ] || grep -q "^$sysname " /proc/modules 2>/dev/null; then
+        log "Already loaded: $mod"
+        return 0
+    fi
+
+    path="$MODULES_DIR/$mod.ko"
+    if [ ! -f "$path" ]; then
+        path="$(find "$MODULES_DIR" -type f -name "$mod.ko" -print -quit 2>/dev/null)"
+    fi
+
+    if [ -n "$path" ] && [ -f "$path" ] && insmod "$path" >> "$LOG" 2>&1; then
+        log "Loaded $mod"
     else
-        log "Missing copied module: $path"
+        log "Failed to load $mod"
     fi
 }
 
-for mod in \
-    lzo_decompress \
-    lzo_compress \
-    lzo \
-    lzo-rle
-do
-    load_mod "$mod"
-done
+module_deps() {
+    local mod="$1"
 
-# wlan.ko is loaded early, as the stock ROM does via modules.load, so the
-# WLAN HDD/icnss2 state is ready before cnss-daemon and the modem start
-# their WLFW handshake.
-load_mod wlan
-
-for mod in \
-    sensors_class \
-    mmi_annotate \
-    mmi_relay \
-    mmi_info \
-    touchscreen_mmi \
-    focaltech_v3 \
-    goodix_brl_mmi \
-    sx937x_sar \
-    awinic_sar \
-    rbs_fod_mmi \
-    mmi_sys_temp
-do
-    load_mod "$mod"
-done
-
-for mod in \
-    q6_pdr_dlkm \
-    snd_event_dlkm \
-    q6_notifier_dlkm \
-    apr_dlkm \
-    q6_dlkm \
-    swr_dlkm \
-    wcd_core_dlkm \
-    wcd9xxx_dlkm \
-    mbhc_dlkm \
-    bolero_cdc_dlkm \
-    aw87xxx_dlkm \
-    wcd937x_dlkm \
-    wcd938x_dlkm \
-    wcd937x_slave_dlkm \
-    wcd938x_slave_dlkm \
-    wsa881x_analog_dlkm \
-    aw882xx_acf \
-    aw882xx_k419 \
-    swr_ctrl_dlkm \
-    rx_macro_dlkm \
-    tx_macro_dlkm \
-    va_macro_dlkm \
-    machine_dlkm \
-    platform_dlkm \
-    native_dlkm \
-    adsp_loader_dlkm \
-    pinctrl_lpi_dlkm
-do
-    load_mod "$mod"
-done
-
-for mod in \
-    camera \
-    cci_intf
-do
-    load_mod "$mod"
-done
-
-for mod in \
-    rmnet_ctl \
-    rmnet_core \
-    rmnet_offload \
-    rmnet_shs
-do
-    load_mod "$mod"
-done
-
-for mod in \
-    btpower \
-    bt_fm_slim
-do
-    load_mod "$mod"
-done
-
-for mod in \
-    bq25980_mmi_iio \
-    mmi_parallel_charger_iio \
-    mmi-smbcharger-iio \
-    qpnp_adaptive_charge \
-    ldo_vibrator_mmi \
-    stub_dlkm \
-    utags \
-    rdbg
-do
-    load_mod "$mod"
-done
-
-for mod in \
-    zram \
-    exfat \
-    sec_nfc
-do
-    load_mod "$mod"
-done
-
-# Firmware check
-if [ -d "$FW_DIR" ]; then
-    log "Firmware presente"
-fi
-
-# Verifica moduli caricati
-MODULES_OK=1
-
-for mod in \
-    lzo_decompress \
-    lzo_compress \
-    lzo \
-    lzo-rle \
-    sensors_class \
-    mmi_annotate \
-    mmi_relay \
-    mmi_info \
-    touchscreen_mmi \
-    focaltech_v3 \
-    goodix_brl_mmi \
-    sx937x_sar \
-    awinic_sar \
-    rbs_fod_mmi \
-    mmi_sys_temp \
-    q6_pdr_dlkm \
-    snd_event_dlkm \
-    q6_notifier_dlkm \
-    apr_dlkm \
-    q6_dlkm \
-    swr_dlkm \
-    wcd_core_dlkm \
-    wcd9xxx_dlkm \
-    mbhc_dlkm \
-    bolero_cdc_dlkm \
-    aw87xxx_dlkm \
-    wcd937x_dlkm \
-    wcd938x_dlkm \
-    wcd937x_slave_dlkm \
-    wcd938x_slave_dlkm \
-    wsa881x_analog_dlkm \
-    aw882xx_acf \
-    aw882xx_k419 \
-    swr_ctrl_dlkm \
-    rx_macro_dlkm \
-    tx_macro_dlkm \
-    va_macro_dlkm \
-    machine_dlkm \
-    platform_dlkm \
-    native_dlkm \
-    adsp_loader_dlkm \
-    pinctrl_lpi_dlkm \
-    camera \
-    cci_intf \
-    rmnet_ctl \
-    rmnet_core \
-    rmnet_offload \
-    rmnet_shs \
-    btpower \
-    bt_fm_slim \
-    bq25980_mmi_iio \
-    mmi_parallel_charger_iio \
-    mmi-smbcharger-iio \
-    qpnp_adaptive_charge \
-    ldo_vibrator_mmi \
-    stub_dlkm \
-    utags \
-    rdbg \
-    zram \
-    exfat \
-    sec_nfc
-do
-    if [ ! -d "/sys/module/$mod" ]; then
-        log "Module missing: $mod"
-        MODULES_OK=0
+    if [ -f "$MODULES_DIR/modules.dep" ]; then
+        awk -v m="/$mod.ko:" 'index($0, m) { sub(/^[^:]*:[[:space:]]*/, ""); print; exit }' \
+            "$MODULES_DIR/modules.dep"
+    elif command -v modinfo >/dev/null 2>&1; then
+        modinfo -F depends "$MODULES_DIR/$mod.ko" 2>/dev/null | tr ',' ' '
     fi
-done
+}
 
-if [ "$MODULES_OK" -eq 1 ]; then
-    setprop twrp.modules.loaded true
-    log "All modules loaded successfully."
+module_softdeps() {
+    local mod="$1"
+    local phase="$2"
+
+    [ -f "$MODULES_DIR/modules.softdep" ] || return 0
+    awk -v m="$mod" -v p="$phase" '
+        $1 == "softdep" && $2 == m {
+            for (i = 3; i <= NF; i++) {
+                if ($i == p) {
+                    for (j = i + 1; j <= NF; j++)
+                        print $j
+                    break
+                }
+            }
+        }' "$MODULES_DIR/modules.softdep"
+}
+
+load_with_deps() {
+    local mod="$1"
+    local dep
+
+    case " $LOAD_STACK " in
+        *" $mod "*) return 0 ;;
+    esac
+    LOAD_STACK="$LOAD_STACK $mod"
+
+    for dep in $(module_softdeps "$mod" "pre:"); do
+        dep="${dep##*/}"
+        dep="${dep%.ko}"
+        load_with_deps "$dep"
+    done
+
+    for dep in $(module_deps "$mod"); do
+        dep="${dep##*/}"
+        dep="${dep%.ko}"
+        load_with_deps "$dep"
+    done
+
+    load_mod "$mod"
+
+    for dep in $(module_softdeps "$mod" "post:"); do
+        dep="${dep##*/}"
+        dep="${dep%.ko}"
+        load_with_deps "$dep"
+    done
+}
+
+if [ -f "$MODULES_DIR/modules.load" ]; then
+    log "Loading modules in modules.load order"
+
+    while IFS= read -r line; do
+        line="${line%%#*}"
+        line="$(printf '%s' "$line" | tr -d '[:space:]')"
+        [ -n "$line" ] || continue
+        line="${line##*/}"
+        line="${line%.ko}"
+        load_with_deps "$line"
+    done < "$MODULES_DIR/modules.load"
 else
-    setprop twrp.modules.loaded true
-    log "Some modules failed to load."
+    log "No modules.load; loading all copied modules"
+
+    for path in "$MODULES_DIR"/*.ko; do
+        [ -f "$path" ] || continue
+        mod="${path##*/}"
+        mod="${mod%.ko}"
+        load_with_deps "$mod"
+    done
 fi
+
+setprop twrp.modules.loaded true
+log "Kernel module loading complete ($MODULE_SOURCE)"
 
 exit 0

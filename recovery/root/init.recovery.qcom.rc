@@ -55,6 +55,7 @@ on early-init
 on early-fs
     write /proc/sys/kernel/sched_lib_name "recovery,Updater,updater,update_engine_sideload"
     write /proc/sys/kernel/sched_lib_mask_force 255
+    start runatboot
 
 on init
     export ANDROID_I18N_ROOT /system
@@ -73,7 +74,6 @@ on init
     mkdir /dev/cpuctl/top-app 0755 system system
     start vendor.qti.vibrator
     start health-hal-2-1
-    start runatboot
     start fox_nas
     start boot-hal-1-1
     start fox_dashboard_init
@@ -97,13 +97,14 @@ on fs
     start vendor.rmt_storage
     mkdir /mnt/vendor/persist 0755
     mount ext4 /dev/block/bootdevice/by-name/persist /mnt/vendor/persist ro
-    wait /dev/block/bootdevice/by-name/modem${ro.boot.slot_suffix} 1
+    wait /dev/block/bootdevice/by-name/modem${ro.boot.slot_suffix} 10
     mount ext4 /dev/block/bootdevice/by-name/modem${ro.boot.slot_suffix} /firmware ro
 
 on property:twrp.modules.loaded=true
     # Load ADSP firmware for PMIC
-    wait /sys/kernel/boot_adsp/boot 1
+    wait /sys/kernel/boot_adsp/boot 5
     write /sys/kernel/boot_adsp/boot 1
+    wait /sys/class/power_supply/battery 5
 
 on property:twrp.all.users.decrypted=true
     start resize

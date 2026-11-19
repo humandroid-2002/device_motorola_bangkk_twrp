@@ -8,12 +8,51 @@ MODULES_DIR="/tmp/lib/modules"
 SLOT="$(getprop ro.boot.slot_suffix)"
 [ -n "$SLOT" ] || SLOT="_a"
 VENDOR_MOUNTED=0
+VENDOR_FIND_RETRIES=4
+VENDOR_MOUNT_RETRIES=6
+VENDOR_RETRY_DELAY=0.2
+FSTAB_WAIT_RETRIES=10
+FSTAB_WAIT_DELAY=0.2
 MODULE_SOURCE=""
 LOAD_STACK=""
 
 log() {
     echo "[OF-MODULES] $1" >> "$LOG"
 }
+
+DONE_MARKER="/tmp/.runatboot.done"
+RUNATBOOT_OWNER=0
+DONE_MARKER_WRITTEN=0
+
+finish_runatboot() {
+    [ "$RUNATBOOT_OWNER" -eq 1 ] || return 0
+    [ "$DONE_MARKER_WRITTEN" -eq 0 ] || return 0
+    DONE_MARKER_WRITTEN=1
+    log "runatboot finished; releasing recovery UI"
+    : > "$DONE_MARKER" 2>/dev/null || true
+}
+
+wait_for_fstab() {
+    local attempt=1
+
+    while [ "$attempt" -le "$FSTAB_WAIT_RETRIES" ]; do
+        [ -s /etc/fstab ] && return 0
+        attempt=$((attempt + 1))
+        [ "$attempt" -le "$FSTAB_WAIT_RETRIES" ] && sleep "$FSTAB_WAIT_DELAY"
+    done
+
+    return 1
+}
+
+START_MARKER="/tmp/.runatboot.started"
+if [ -f "$START_MARKER" ]; then
+    log "Duplicate start ignored"
+    exit 0
+fi
+: > "$START_MARKER" 2>/dev/null || true
+RUNATBOOT_OWNER=1
+rm -f "$DONE_MARKER" 2>/dev/null || true
+trap finish_runatboot EXIT
 
 mount_vendor_dev() {
     local dev="$1"
@@ -35,40 +74,91 @@ mount_vendor_dev() {
     return 1
 }
 
+mount_vendor_dev_retry() {
+    local dev="$1"
+    local target="$2"
+    local attempt=1
+
+    while [ "$attempt" -le "$VENDOR_MOUNT_RETRIES" ]; do
+        if mount_vendor_dev "$dev" "$target"; then
+            return 0
+        fi
+
+        attempt=$((attempt + 1))
+        [ "$attempt" -le "$VENDOR_MOUNT_RETRIES" ] && sleep "$VENDOR_RETRY_DELAY"
+    done
+
+    return 1
+}
+
+mount_vendor_fstab_retry() {
+    local attempt=1
+
+    while [ "$attempt" -le "$VENDOR_MOUNT_RETRIES" ]; do
+        if mount "$VENDOR" >> "$LOG" 2>&1; then
+            return 0
+        fi
+
+        attempt=$((attempt + 1))
+        [ "$attempt" -le "$VENDOR_MOUNT_RETRIES" ] && sleep "$VENDOR_RETRY_DELAY"
+    done
+
+    return 1
+}
+
 find_vendor_device() {
     local part
     local dev
     local out
     local dm
-
-    for dev in \
-        "/dev/block/mapper/vendor${SLOT}" \
-        "/dev/block/mapper/vendor" \
-        "/dev/block/by-name/vendor${SLOT}" \
-        "/dev/block/by-name/vendor" \
-        "/dev/block/bootdevice/by-name/vendor${SLOT}" \
-        "/dev/block/bootdevice/by-name/vendor"
-    do
-        [ -b "$dev" ] && { echo "$dev"; return 0; }
-    done
+    local attempt
 
     if command -v lptools >/dev/null 2>&1; then
-        for part in "vendor${SLOT}" "vendor"; do
-            out="$(lptools map "$part" 2>&1)"
-            log "$out"
-            dev="$(printf '%s\n' "$out" | sed -n 's/.* at \(\/dev\/block\/dm-[0-9][0-9]*\).*/\1/p' | tail -n 1)"
+        attempt=1
+        while [ "$attempt" -le 3 ]; do
+            for part in "vendor${SLOT}" "vendor"; do
+                out="$(lptools map "$part" 2>&1)"
+                log "$out"
+                dev="$(printf '%s\n' "$out" | sed -n 's/.* at \(\/dev\/block\/dm-[0-9][0-9]*\).*/\1/p' | tail -n 1)"
+                [ -n "$dev" ] && { echo "$dev"; return 0; }
 
-            if [ -z "$dev" ]; then
                 for dm in /sys/block/dm-*; do
                     [ "$(cat "$dm/dm/name" 2>/dev/null)" = "$part" ] || continue
-                    dev="/dev/block/${dm##*/}"
-                    break
+                    echo "/dev/block/${dm##*/}"
+                    return 0
                 done
-            fi
-
-            [ -n "$dev" ] && { echo "$dev"; return 0; }
+            done
+            attempt=$((attempt + 1))
+            [ "$attempt" -le 3 ] && sleep 0.2
         done
     fi
+
+    attempt=1
+    while [ "$attempt" -le "$VENDOR_FIND_RETRIES" ]; do
+        for dev in \
+            "/dev/block/mapper/vendor${SLOT}" \
+            "/dev/block/mapper/vendor" \
+            "/dev/block/by-name/vendor${SLOT}" \
+            "/dev/block/by-name/vendor" \
+            "/dev/block/bootdevice/by-name/vendor${SLOT}" \
+            "/dev/block/bootdevice/by-name/vendor"
+        do
+            [ -b "$dev" ] && { echo "$dev"; return 0; }
+        done
+
+        for dm in /sys/block/dm-*; do
+            [ -r "$dm/dm/name" ] || continue
+            case "$(cat "$dm/dm/name" 2>/dev/null)" in
+                "vendor${SLOT}" | vendor)
+                    echo "/dev/block/${dm##*/}"
+                    return 0
+                    ;;
+            esac
+        done
+
+        attempt=$((attempt + 1))
+        [ "$attempt" -le "$VENDOR_FIND_RETRIES" ] && sleep "$VENDOR_RETRY_DELAY"
+    done
 
     return 1
 }
@@ -98,16 +188,96 @@ copy_modules_from() {
     find "$MODULES_DIR" -type f -name '*.ko' -print | grep -q '\.ko$'
 }
 
-prepare_prebuilt_modules() {
-    if [ -d "$PREBUILT_MODULES_DIR" ] && copy_modules_from "$PREBUILT_MODULES_DIR"; then
-        MODULE_SOURCE="prebuilt"
-        log "Using prebuilt modules"
+probe_vendor_module() {
+    local name="$1"
+    local sysname path out rc
+
+    sysname="$(printf '%s' "$name" | tr '-' '_')"
+    if [ -d "/sys/module/$sysname" ]; then
+        log "Vendor probe skipped (already loaded/built-in): $name"
+        return 3
+    fi
+
+    path="$MODULES_DIR/$name.ko"
+    [ -f "$path" ] || return 1
+
+    out="$(insmod "$path" 2>&1)"
+    rc=$?
+    [ -n "$out" ] && printf '%s\n' "$out" >> "$LOG"
+
+    if [ "$rc" -eq 0 ]; then
+        log "Vendor probe OK: $name"
         return 0
     fi
 
-    if [ -d "$VENDOR/lib/modules/1.1" ] && copy_modules_from "$VENDOR/lib/modules/1.1"; then
-        MODULE_SOURCE="ramdisk"
-        log "Using recovery ramdisk modules"
+    if printf '%s' "$out" | grep -qiE 'exec format|invalid module format|vermagic'; then
+        log "Vendor probe vermagic mismatch: $name"
+        return 2
+    fi
+
+    log "Vendor probe failed: $name"
+    return 1
+}
+
+probe_vendor_modules() {
+    local line path name rc
+    local ok=0 tried=0 already=0
+
+    if [ -s "$MODULES_DIR/modules.load" ]; then
+        while IFS= read -r line; do
+            line="${line%%#*}"
+            line="$(printf '%s' "$line" | tr -d '[:space:]')"
+            [ -n "$line" ] || continue
+            line="${line##*/}"
+            line="${line%.ko}"
+            probe_vendor_module "$line"
+            rc=$?
+            case "$rc" in
+                0) ok=1; break ;;
+                2) return 1 ;;
+                3) already=$((already + 1)) ;;
+                *) tried=$((tried + 1)) ;;
+            esac
+        done < "$MODULES_DIR/modules.load"
+    else
+        for path in "$MODULES_DIR"/*.ko; do
+            [ -f "$path" ] || continue
+            name="${path##*/}"
+            name="${name%.ko}"
+            probe_vendor_module "$name"
+            rc=$?
+            case "$rc" in
+                0) ok=1; break ;;
+                2) return 1 ;;
+                3) already=$((already + 1)) ;;
+                *) tried=$((tried + 1)) ;;
+            esac
+        done
+    fi
+
+    if [ "$ok" -eq 1 ]; then
+        log "Vendor modules match the running kernel"
+        return 0
+    fi
+
+    if [ "$tried" -eq 0 ] && [ "$already" -gt 0 ]; then
+        log "All vendor probe candidates already loaded; assuming vendor modules"
+        return 0
+    fi
+
+    return 1
+}
+
+prepare_prebuilt_modules() {
+    if [ ! -d "$PREBUILT_MODULES_DIR" ]; then
+        return 1
+    fi
+
+    rm -rf "$MODULES_DIR"
+    mkdir -p "$MODULES_DIR" || return 1
+    if copy_modules_from "$PREBUILT_MODULES_DIR"; then
+        MODULE_SOURCE="prebuilt"
+        log "Using prebuilt modules"
         return 0
     fi
 
@@ -117,40 +287,41 @@ prepare_prebuilt_modules() {
 prepare_stock_modules() {
     if ! mountpoint -q "$VENDOR"; then
         log "Mounting $VENDOR..."
-        if mount "$VENDOR" >> "$LOG" 2>&1; then
+        vendor_dev="$(find_vendor_device)"
+        if [ -n "$vendor_dev" ] && mount_vendor_dev_retry "$vendor_dev" "$VENDOR"; then
             VENDOR_MNT="$VENDOR"
             VENDOR_MOUNTED=1
-        else
-            vendor_dev="$(find_vendor_device)"
-            if [ -n "$vendor_dev" ]; then
-                if mount_vendor_dev "$vendor_dev" "$VENDOR"; then
-                    VENDOR_MNT="$VENDOR"
-                    VENDOR_MOUNTED=1
-                else
-                    mkdir -p /tmp/vendor
-                    if mount_vendor_dev "$vendor_dev" "/tmp/vendor"; then
-                        VENDOR_MNT="/tmp/vendor"
-                        VENDOR_MOUNTED=1
-                    else
-                        log "WARNING: cannot mount $vendor_dev"
-                    fi
-                fi
+        elif wait_for_fstab && mount_vendor_fstab_retry; then
+            VENDOR_MNT="$VENDOR"
+            VENDOR_MOUNTED=1
+        elif [ -n "$vendor_dev" ]; then
+            mkdir -p /tmp/vendor
+            if mount_vendor_dev_retry "$vendor_dev" "/tmp/vendor"; then
+                VENDOR_MNT="/tmp/vendor"
+                VENDOR_MOUNTED=1
             else
-                log "WARNING: vendor partition not found"
+                log "WARNING: cannot mount $vendor_dev"
             fi
+        else
+            log "WARNING: vendor partition not found"
         fi
     else
         VENDOR_MNT="$VENDOR"
-        VENDOR_MOUNTED=1
     fi
 
-    if [ -d "$VENDOR_MNT/lib/modules" ] && copy_modules_from "$VENDOR_MNT/lib/modules"; then
-        MODULE_SOURCE="stock"
-        log "Using vendor modules"
-        return 0
+    if [ -d "$VENDOR_MNT/lib/modules" ]; then
+        rm -rf "$MODULES_DIR"
+        mkdir -p "$MODULES_DIR" || return 1
+        if copy_modules_from "$VENDOR_MNT/lib/modules"; then
+            if probe_vendor_modules; then
+                MODULE_SOURCE="stock"
+                log "Using vendor modules"
+                return 0
+            fi
+        fi
     fi
 
-    log "No vendor modules found"
+    log "Vendor modules do not match the running kernel"
     return 1
 }
 
@@ -162,7 +333,9 @@ mkdir -p "$MODULES_DIR" || {
 }
 
 if ! prepare_stock_modules; then
-    prepare_prebuilt_modules || true
+    if ! prepare_prebuilt_modules; then
+        log "WARNING: no usable modules found"
+    fi
 fi
 
 if [ "$VENDOR_MOUNTED" = "1" ] && mountpoint -q "$VENDOR_MNT"; then
@@ -284,7 +457,7 @@ load_with_deps() {
     done
 }
 
-if [ -f "$MODULES_DIR/modules.load" ]; then
+if [ -s "$MODULES_DIR/modules.load" ]; then
     log "Loading modules in modules.load order"
 
     while IFS= read -r line; do
@@ -306,6 +479,7 @@ else
     done
 fi
 
+finish_runatboot
 setprop twrp.modules.loaded true
 log "Kernel module loading complete ($MODULE_SOURCE)"
 

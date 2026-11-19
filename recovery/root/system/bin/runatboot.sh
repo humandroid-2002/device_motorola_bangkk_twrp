@@ -15,6 +15,13 @@ log() {
     echo "[OF-MODULES] $1" >> "$LOG"
 }
 
+START_MARKER="/tmp/.runatboot.started"
+if [ -f "$START_MARKER" ]; then
+    log "Duplicate start ignored"
+    exit 0
+fi
+: > "$START_MARKER" 2>/dev/null || true
+
 mount_vendor_dev() {
     local dev="$1"
     local target="$2"
@@ -98,16 +105,96 @@ copy_modules_from() {
     find "$MODULES_DIR" -type f -name '*.ko' -print | grep -q '\.ko$'
 }
 
-prepare_prebuilt_modules() {
-    if [ -d "$PREBUILT_MODULES_DIR" ] && copy_modules_from "$PREBUILT_MODULES_DIR"; then
-        MODULE_SOURCE="prebuilt"
-        log "Using prebuilt modules"
+probe_vendor_module() {
+    local name="$1"
+    local sysname path out rc
+
+    sysname="$(printf '%s' "$name" | tr '-' '_')"
+    if [ -d "/sys/module/$sysname" ]; then
+        log "Vendor probe skipped (already loaded/built-in): $name"
+        return 3
+    fi
+
+    path="$MODULES_DIR/$name.ko"
+    [ -f "$path" ] || return 1
+
+    out="$(insmod "$path" 2>&1)"
+    rc=$?
+    [ -n "$out" ] && printf '%s\n' "$out" >> "$LOG"
+
+    if [ "$rc" -eq 0 ]; then
+        log "Vendor probe OK: $name"
         return 0
     fi
 
-    if [ -d "$VENDOR/lib/modules/1.1" ] && copy_modules_from "$VENDOR/lib/modules/1.1"; then
-        MODULE_SOURCE="ramdisk"
-        log "Using recovery ramdisk modules"
+    if printf '%s' "$out" | grep -qiE 'exec format|invalid module format|vermagic'; then
+        log "Vendor probe vermagic mismatch: $name"
+        return 2
+    fi
+
+    log "Vendor probe failed: $name"
+    return 1
+}
+
+probe_vendor_modules() {
+    local line path name rc
+    local ok=0 tried=0 already=0
+
+    if [ -s "$MODULES_DIR/modules.load" ]; then
+        while IFS= read -r line; do
+            line="${line%%#*}"
+            line="$(printf '%s' "$line" | tr -d '[:space:]')"
+            [ -n "$line" ] || continue
+            line="${line##*/}"
+            line="${line%.ko}"
+            probe_vendor_module "$line"
+            rc=$?
+            case "$rc" in
+                0) ok=1; break ;;
+                2) return 1 ;;
+                3) already=$((already + 1)) ;;
+                *) tried=$((tried + 1)) ;;
+            esac
+        done < "$MODULES_DIR/modules.load"
+    else
+        for path in "$MODULES_DIR"/*.ko; do
+            [ -f "$path" ] || continue
+            name="${path##*/}"
+            name="${name%.ko}"
+            probe_vendor_module "$name"
+            rc=$?
+            case "$rc" in
+                0) ok=1; break ;;
+                2) return 1 ;;
+                3) already=$((already + 1)) ;;
+                *) tried=$((tried + 1)) ;;
+            esac
+        done
+    fi
+
+    if [ "$ok" -eq 1 ]; then
+        log "Vendor modules match the running kernel"
+        return 0
+    fi
+
+    if [ "$tried" -eq 0 ] && [ "$already" -gt 0 ]; then
+        log "All vendor probe candidates already loaded; assuming vendor modules"
+        return 0
+    fi
+
+    return 1
+}
+
+prepare_prebuilt_modules() {
+    if [ ! -d "$PREBUILT_MODULES_DIR" ]; then
+        return 1
+    fi
+
+    rm -rf "$MODULES_DIR"
+    mkdir -p "$MODULES_DIR" || return 1
+    if copy_modules_from "$PREBUILT_MODULES_DIR"; then
+        MODULE_SOURCE="prebuilt"
+        log "Using prebuilt modules"
         return 0
     fi
 
@@ -141,16 +228,21 @@ prepare_stock_modules() {
         fi
     else
         VENDOR_MNT="$VENDOR"
-        VENDOR_MOUNTED=1
     fi
 
-    if [ -d "$VENDOR_MNT/lib/modules" ] && copy_modules_from "$VENDOR_MNT/lib/modules"; then
-        MODULE_SOURCE="stock"
-        log "Using vendor modules"
-        return 0
+    if [ -d "$VENDOR_MNT/lib/modules" ]; then
+        rm -rf "$MODULES_DIR"
+        mkdir -p "$MODULES_DIR" || return 1
+        if copy_modules_from "$VENDOR_MNT/lib/modules"; then
+            if probe_vendor_modules; then
+                MODULE_SOURCE="stock"
+                log "Using vendor modules"
+                return 0
+            fi
+        fi
     fi
 
-    log "No vendor modules found"
+    log "Vendor modules do not match the running kernel"
     return 1
 }
 
@@ -162,7 +254,9 @@ mkdir -p "$MODULES_DIR" || {
 }
 
 if ! prepare_stock_modules; then
-    prepare_prebuilt_modules || true
+    if ! prepare_prebuilt_modules; then
+        log "WARNING: no usable modules found"
+    fi
 fi
 
 if [ "$VENDOR_MOUNTED" = "1" ] && mountpoint -q "$VENDOR_MNT"; then
@@ -284,7 +378,7 @@ load_with_deps() {
     done
 }
 
-if [ -f "$MODULES_DIR/modules.load" ]; then
+if [ -s "$MODULES_DIR/modules.load" ]; then
     log "Loading modules in modules.load order"
 
     while IFS= read -r line; do

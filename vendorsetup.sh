@@ -201,7 +201,7 @@ if [ "$1" = "$FDEVICE" -o "$FOX_BUILD_DEVICE" = "$FDEVICE" ]; then
 	# Fox Settings
 	export LC_ALL="C"
 	export ALLOW_MISSING_DEPENDENCIES=true
-    export FOX_COMPRESS_EXECUTABLES=1
+	export FOX_COMPRESS_EXECUTABLES=1
 	export FOX_BUILD_TYPE="Stable"
 	export FOX_MAINTAINER_PATCH_VERSION="1"
 

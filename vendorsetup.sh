@@ -92,13 +92,13 @@ if [ "$2" = "--first-call" ] && [ -n "$1" ] && [ -d "$1" ]; then
         local ramdisk="$1" twres="$1/twres" img="$1/twres/resources/images.xml" cust="$1/twres/pages/customization.xml" f n
         [ -d "$twres" ] || return 0
         echo "-- pruning extra fonts from ramdisk"
-        [ -f "$twres/themes/font.xml" ] && sed -i -e 's/GoogleSans/Roboto/g' -e 's/InterDisplay/Roboto/g' -e 's/RobotoSlab/Roboto/g' "$twres/themes/font.xml"
-        [ -f "$img" ] && sed -i -e 's/EuclidFlex/Roboto/g' -e 's/GoogleSans/Roboto/g' -e 's/FiraCode/Roboto/g' -e 's/InterDisplay/Roboto/g' -e 's/RobotoSlab/Roboto/g' "$img"
-        [ -f "$twres/splash.xml" ] && sed -i -e 's/EuclidFlex/Roboto/g' -e 's/GoogleSans/Roboto/g' -e 's/FiraCode/Roboto/g' -e 's/InterDisplay/Roboto/g' -e 's/RobotoSlab/Roboto/g' "$twres/splash.xml"
-        [ -f "$twres/themes/sed/splash.xml" ] && sed -i -e 's/EuclidFlex/Roboto/g' -e 's/InterDisplay/Roboto/g' -e 's/RobotoSlab/Roboto/g' "$twres/themes/sed/splash.xml"
-        [ -f "$twres/themes/sed/splash_orig.xml" ] && sed -i -e 's/EuclidFlex/Roboto/g' -e 's/InterDisplay/Roboto/g' -e 's/RobotoSlab/Roboto/g' "$twres/themes/sed/splash_orig.xml"
+        [ -f "$twres/themes/font.xml" ] && sed -i -e 's/GoogleSans/Roboto/g' -e 's/InterDisplay/Roboto/g' -e 's/RobotoSlab/Roboto-Regular/g' "$twres/themes/font.xml"
+        [ -f "$img" ] && sed -i -e 's/EuclidFlex/Roboto/g' -e 's/GoogleSans/Roboto/g' -e 's/FiraCode/Roboto/g' -e 's/InterDisplay/Roboto/g' -e 's/RobotoSlab/Roboto-Regular/g' "$img"
+        [ -f "$twres/splash.xml" ] && sed -i -e 's/EuclidFlex/Roboto/g' -e 's/GoogleSans/Roboto/g' -e 's/FiraCode/Roboto/g' -e 's/InterDisplay/Roboto/g' -e 's/RobotoSlab/Roboto-Regular/g' "$twres/splash.xml"
+        [ -f "$twres/themes/sed/splash.xml" ] && sed -i -e 's/EuclidFlex/Roboto/g' -e 's/InterDisplay/Roboto/g' -e 's/RobotoSlab/Roboto-Regular/g' "$twres/themes/sed/splash.xml"
+        [ -f "$twres/themes/sed/splash_orig.xml" ] && sed -i -e 's/EuclidFlex/Roboto/g' -e 's/InterDisplay/Roboto/g' -e 's/RobotoSlab/Roboto-Regular/g' "$twres/themes/sed/splash_orig.xml"
         [ -f "$twres/pages/recovery.xml" ] && sed -i 's/GoogleSans/Roboto/g' "$twres/pages/recovery.xml"
-        [ -f "$cust" ] && sed -i -e 's/GoogleSans/Roboto/g' -e 's/RobotoSlab/Roboto/g' "$cust"
+        [ -f "$cust" ] && sed -i -e 's/GoogleSans/Roboto/g' -e 's/RobotoSlab/Roboto-Regular/g' "$cust"
 
         for f in Amatic Chococooky Exo2-Medium Exo2-Regular EuclidFlex-Medium EuclidFlex-Regular FiraCode-Medium FiraCode-Regular GoogleSans-Medium GoogleSans-Regular InterDisplay-Medium InterDisplay-Regular MILanPro-Medium MILanPro-Regular RobotoSlab; do
             rm -f "$twres/fonts/$f.ttf"

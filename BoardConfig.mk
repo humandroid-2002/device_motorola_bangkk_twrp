@@ -231,6 +231,7 @@ TARGET_RECOVERY_QCOM_RTC_FIX    := true
 # Recovery modules
 TARGET_RECOVERY_DEVICE_MODULES += \
     debuggerd \
+    libdmctl \
     strace
 
 # Recovery binaries
@@ -240,6 +241,7 @@ RECOVERY_BINARY_SOURCE_FILES += \
 
 # Recovery libraries
 RECOVERY_LIBRARY_SOURCE_FILES += \
+    $(TARGET_OUT_SHARED_LIBRARIES)/libdmctl.so \
     $(TARGET_OUT_SHARED_LIBRARIES)/libion.so \
     $(TARGET_OUT_SHARED_LIBRARIES)/libxml2.so \
     $(TARGET_OUT_SYSTEM_EXT_SHARED_LIBRARIES)/display.config@2.0.so \

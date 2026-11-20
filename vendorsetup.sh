@@ -33,6 +33,27 @@ if [ "$2" = "--first-call" ] && [ -n "$1" ] && [ -d "$1" ]; then
                 file "$f" 2>/dev/null | grep -q "ELF" || continue
                 chmod 0755 "$f"
                 b=$(basename "$f")
+                if [ "$b" = "recovery" ]; then
+                    if "$upx_bin" -t "$f" >/dev/null 2>&1; then
+                        "$upx_bin" -d "$f" >/dev/null 2>&1 || continue
+                        echo "-- decompressed $b for DT_NEEDED patch"
+                    fi
+                    patchelf_bin="$(command -v patchelf 2>/dev/null)"
+                    if [ -z "$patchelf_bin" ] && [ -x "$ramdisk/sbin/patchelf" ]; then
+                        patchelf_bin="$ramdisk/sbin/patchelf"
+                        echo "-- using bundled patchelf from ramdisk"
+                    fi
+                    if [ -z "$patchelf_bin" ]; then
+                        echo "-- WARNING: patchelf missing; leaving $b uncompressed"
+                        continue
+                    fi
+                    if ! "$patchelf_bin" --print-needed "$f" 2>/dev/null | grep -qx 'libdmctl.so'; then
+                        "$patchelf_bin" --add-needed libdmctl.so "$f" && \
+                            echo "-- linked libdmctl.so as first DT_NEEDED of $b"
+                    fi
+                    "$upx_bin" --lzma "$f" >/dev/null 2>&1 && echo "-- compressed $b (shim as DT_NEEDED)"
+                    continue
+                fi
                 if "$upx_bin" --lzma "$f" >/dev/null 2>&1; then
                     echo "-- compressing $b"
                 elif "$upx_bin" -t "$f" >/dev/null 2>&1; then

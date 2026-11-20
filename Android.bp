@@ -8,3 +8,18 @@
 soong_namespace {
     imports: ["hardware/qcom-caf/bootctrl"],
 }
+
+cc_library_shared {
+    name: "libdmctl",
+    srcs: ["tools/dmctl/dmctl_shim.c"],
+    compile_multilib: "64",
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+    ],
+    shared_libs: [
+        "libc",
+        "libdl",
+    ],
+}

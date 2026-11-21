@@ -19,6 +19,9 @@ OF_DYNAMIC_FULL_SIZE := 6710886400
 OF_REDUCE_DECRYPTION_TIMEOUT := 1
 OF_QUICK_BACKUP_LIST := /data;/boot;
 
+# misc
+OF_VIBRATION_DEFAULTS := 170,40,250
+
 # Security (Disables MTP & ADB during password prompt)
 OF_ADVANCED_SECURITY := 1
 

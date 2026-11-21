@@ -20,18 +20,16 @@ BUILD_BROKEN_PLUGIN_VALIDATION   := soong-libaosprecovery_defaults soong-libguit
 # A/B
 AB_OTA_UPDATER := true
 
-AB_OTA_PARTITIONS := \
+AB_OTA_PARTITIONS += \
     boot \
-    vendor_boot \
     dtbo \
-    vbmeta \
-    vbmeta_system \
+    product \
     system \
     system_ext \
-    product \
+    vbmeta \
+    vbmeta_system \
     vendor \
-    vendor_dlkm \
-    odm
+    vendor_boot
 
 # Architecture
 TARGET_ARCH                    := arm64
@@ -135,24 +133,21 @@ TARGET_USES_MKE2FS         := true
 BOARD_EROFS_COMPRESSOR                      := lz4hc
 BOARD_EROFS_PCLUSTER_SIZE                   := 4096
 
-BOARD_SUPER_PARTITION_SIZE                  := 6710886400 # TODO: Fix hardcoded value
-BOARD_SUPER_PARTITION_GROUPS                := qti_dynamic_partitions
-BOARD_QTI_DYNAMIC_PARTITIONS_SIZE           := 6706692096 # TODO: Fix hardcoded value
-BOARD_QTI_DYNAMIC_PARTITIONS_PARTITION_LIST := system system_ext product vendor vendor_dlkm odm
+BOARD_SUPER_PARTITION_SIZE                  := 6710886400
+BOARD_SUPER_PARTITION_GROUPS                := mot_dp_group
+BOARD_MOT_DP_GROUP_SIZE                     := 6706692096
+BOARD_MOT_DP_GROUP_PARTITION_LIST           := system system_ext product vendor
 
 BOARD_USERDATAIMAGE_FILE_SYSTEM_TYPE   := f2fs
 BOARD_PRODUCTIMAGE_FILE_SYSTEM_TYPE    := ext4
 BOARD_SYSTEM_EXTIMAGE_FILE_SYSTEM_TYPE := ext4
 BOARD_SYSTEMIMAGE_FILE_SYSTEM_TYPE     := ext4
 BOARD_SYSTEMIMAGE_PARTITION_TYPE       := ext4
-BOARD_ODMIMAGE_FILE_SYSTEM_TYPE        := ext4
 BOARD_VENDORIMAGE_FILE_SYSTEM_TYPE     := ext4
-BOARD_CACHEIMAGE_FILE_SYSTEM_TYPE      := ext4
 
 TARGET_COPY_OUT_PRODUCT    := product
 TARGET_COPY_OUT_SYSTEM     := system
 TARGET_COPY_OUT_SYSTEM_EXT := system_ext
-TARGET_COPY_OUT_ODM        := odm
 TARGET_COPY_OUT_VENDOR     := vendor
 
 BOARD_PROPERTY_OVERRIDES_SPLIT_ENABLED := true

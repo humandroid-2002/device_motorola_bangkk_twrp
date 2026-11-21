@@ -80,6 +80,9 @@ on init
     write /sys/class/backlight/panel0-backlight/brightness 200
     write /sys/class/leds/vibrator/duration 180
     write /sys/class/leds/vibrator/trigger "transient"
+    setprop log.tag.healthd SILENT
+    setprop log.tag.health-hal-2-1 SILENT
+    write /proc/sys/kernel/printk "1 4 1 3"
 
 on fs
     wait /dev/block/platform/soc/${ro.boot.bootdevice}

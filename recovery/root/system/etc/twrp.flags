@@ -73,7 +73,6 @@
 /utagsBackup           emmc    /dev/block/bootdevice/by-name/utagsBackup                            flags=backup=1
 /vm-data               emmc    /dev/block/bootdevice/by-name/vm-data                                flags=backup=1
 /vm-keystore           emmc    /dev/block/bootdevice/by-name/vm-keystore                            flags=backup=1
-/super                 emmc    /dev/block/bootdevice/by-name/super                                  flags=backup=1
 /carrier               emmc    /dev/block/bootdevice/by-name/carrier                                flags=backup=1
 /cid                   emmc    /dev/block/bootdevice/by-name/cid                                    flags=backup=1
 /ddr                   emmc    /dev/block/bootdevice/by-name/ddr                                    flags=backup=1

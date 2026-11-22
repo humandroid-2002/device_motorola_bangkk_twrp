@@ -26,7 +26,6 @@
 #
 
 import /init.recovery.qcom_decrypt.rc
-import /init.recovery.service.rc
 
 service mount_rom_icu /system/bin/sh /system/bin/mount_rom_icu.sh
     class core
@@ -60,7 +59,6 @@ on early-fs
 on init
     export ANDROID_I18N_ROOT /system
     export ANDROID_TZDATA_ROOT /apex/com.android.tzdata
-    start mount_rom_icu
     mkdir /dev/cpuset/foreground 0755 system system
     write /dev/cpuset/foreground/cpus 0-7
     write /dev/cpuset/foreground/mems 0
@@ -102,12 +100,24 @@ on fs
     mount ext4 /dev/block/bootdevice/by-name/persist /mnt/vendor/persist ro
     wait /dev/block/bootdevice/by-name/modem${ro.boot.slot_suffix} 10
     mount ext4 /dev/block/bootdevice/by-name/modem${ro.boot.slot_suffix} /firmware ro
+    start mount_rom_icu
+
+on early-boot
+    wait /tmp/.runatboot.done 15
 
 on property:twrp.modules.loaded=true
     # Load ADSP firmware for PMIC
-    wait /sys/kernel/boot_adsp/boot 5
+    wait /sys/kernel/boot_adsp/boot 2
     write /sys/kernel/boot_adsp/boot 1
-    wait /sys/class/power_supply/battery 5
+
+on property:twrp.all.users.decrypted=true
+    start resize
+
+service resize /system/bin/resize.sh
+    user root
+    group root
+    oneshot
+    seclabel u:r:recovery:s0
 
 service set_permissive /system/bin/set_permissive.sh
     user root

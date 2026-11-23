@@ -22,6 +22,10 @@ OF_QUICK_BACKUP_LIST := /data;/boot;
 # misc
 OF_VIBRATION_DEFAULTS := 170,40,250
 
+# OTA
+OF_DISABLE_ORS_AUTO_REBOOT := 1
+OF_DISABLE_OTA_MENU := 1
+
 # Security (Disables MTP & ADB during password prompt)
 OF_ADVANCED_SECURITY := 1
 

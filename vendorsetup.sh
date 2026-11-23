@@ -172,9 +172,7 @@ fi
 if [ "$1" = "$FDEVICE" -o "$FOX_BUILD_DEVICE" = "$FDEVICE" ]; then
 
 	# A/B, virtual A/B, recovery
-	# keep va/b disabled for (OTA & ROM)
-	export FOX_AB_DEVICE=1
-	export FOX_VIRTUAL_AB_DEVICE=0
+	export FOX_VIRTUAL_AB_DEVICE=1
 	export FOX_RECOVERY_SYSTEM_PARTITION="/dev/block/mapper/system"
 	export FOX_RECOVERY_VENDOR_PARTITION="/dev/block/mapper/vendor"
 

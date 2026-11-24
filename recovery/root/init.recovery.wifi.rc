@@ -52,9 +52,9 @@ on property:init.svc.cnss-daemon=stopped
     rm /data/vendor/wifi/sockets/cnss_user_server
     rm /data/vendor/wifi/sockets/cnss_user_client
 
-on property:sys.fox.wlan.up=1
-    setprop sys.fox.wlan.up 0
-    setprop sys.fox.wlan.supplicant_pending 1
+on property:sys.aera.wlan.up=1
+    setprop sys.aera.wlan.up 0
+    setprop sys.aera.wlan.supplicant_pending 1
     start wlan_loader
 
 service vendor.qrtr-ns /system/bin/qrtr-ns -f

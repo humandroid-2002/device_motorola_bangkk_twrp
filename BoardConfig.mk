@@ -49,7 +49,7 @@ TARGET_2ND_CPU_VARIANT_RUNTIME := cortex-a75
 # Bootloader
 TARGET_BOARD_PLATFORM_GPU          := qcom-adreno619
 TARGET_BOOTLOADER_BOARD_NAME       := bangkk
-TW_DEVICE_VERSION                  := bangkk
+AERA_DEVICE_VERSION                := bangkk
 TARGET_BOARD_PLATFORM              := holi
 QCOM_BOARD_PLATFORMS               += holi
 TARGET_USES_HARDWARE_QCOM_BOOTCTRL := true
@@ -74,8 +74,8 @@ BOARD_KERNEL_IMAGE_NAME := Image
 BOARD_RAMDISK_USE_LZ4   := true
 
 # Keep only required modules; we're almost on size limit (Touch,Battery and Haptics)
-#TW_LOAD_PREBUILT_MODULES_AT_FIRST := true
-#TW_LOAD_VENDOR_MODULES := "bq25980_mmi_iio.ko exfat.ko focaltech_v3.ko goodix_brl_mmi.ko ldo_vibrator_mmi.ko mmi_annotate.ko mmi_info.ko mmi_parallel_charger_iio.ko mmi_relay.ko mmi-smbcharger-iio.ko sensors_class.ko touchscreen_mmi.ko"
+#AERA_LOAD_PREBUILT_MODULES_AT_FIRST := true
+#AERA_LOAD_VENDOR_MODULES := "bq25980_mmi_iio.ko exfat.ko focaltech_v3.ko goodix_brl_mmi.ko ldo_vibrator_mmi.ko mmi_annotate.ko mmi_info.ko mmi_parallel_charger_iio.ko mmi_relay.ko mmi-smbcharger-iio.ko sensors_class.ko touchscreen_mmi.ko"
 
 BOARD_KERNEL_PAGESIZE      := 4096
 BOARD_FLASH_BLOCK_SIZE     := 262144 # (BOARD_KERNEL_PAGESIZE * 64)
@@ -154,14 +154,13 @@ BOARD_PROPERTY_OVERRIDES_SPLIT_ENABLED := true
 BOARD_USES_PRODUCTIMAGE                := true
 
 # Crypto
-FIXED_DECRYPT                   := true
-TW_INCLUDE_CRYPTO               := $(FIXED_DECRYPT)
-TW_INCLUDE_CRYPTO_FBE           := $(FIXED_DECRYPT)
-TW_INCLUDE_FBE_METADATA_DECRYPT := $(FIXED_DECRYPT)
-BOARD_USES_QCOM_FBE_DECRYPTION  := $(FIXED_DECRYPT)
-BOARD_USES_METADATA_PARTITION   := true
-TW_FORCE_KEYMASTER_VER          := true
-TW_USE_FSCRYPT_POLICY           := 2
+FIXED_DECRYPT                     := true
+AERA_INCLUDE_CRYPTO               := $(FIXED_DECRYPT)
+AERA_INCLUDE_CRYPTO_FBE           := $(FIXED_DECRYPT)
+AERA_INCLUDE_FBE_METADATA_DECRYPT := $(FIXED_DECRYPT)
+BOARD_USES_QCOM_FBE_DECRYPTION    := $(FIXED_DECRYPT)
+BOARD_USES_METADATA_PARTITION     := true
+AERA_USE_FSCRYPT_POLICY           := 2
 
 # Hack: prevent anti rollback
 PLATFORM_VERSION             := 99.87.36
@@ -179,48 +178,49 @@ BOARD_AVB_VBMETA_SYSTEM_KEY_PATH                := external/avb/test/data/testke
 BOARD_AVB_VBMETA_SYSTEM_ROLLBACK_INDEX          := 22
 BOARD_AVB_VBMETA_SYSTEM_ROLLBACK_INDEX_LOCATION := 2
 
-# TWRP Configuration
-TW_THEME                        := portrait_hdpi
+# AERA Configuration
+AERA_THEME                      := portrait_hdpi
 TARGET_RECOVERY_PIXEL_FORMAT    := RGBX_8888
 TARGET_USE_CUSTOM_LUN_FILE_PATH := /config/usb_gadget/g1/functions/mass_storage.0/lun.%d/file
-TW_INPUT_BLACKLIST              := "hbtp_vm"
-TW_BRIGHTNESS_PATH              := "/sys/class/backlight/panel0-backlight/brightness"
-TW_CUSTOM_CPU_TEMP_PATH         := "/sys/class/thermal/thermal_zone28/temp" # CPU-0-0-USR
-TW_CUSTOM_BATTERY_PATH          := "/sys/class/power_supply/qcom_battery"
-TW_DEVICE_VERSION               := bangkk
-TW_HAS_FLASHLIGHT               := false
 RECOVERY_SDCARD_ON_DATA         := true
-TW_MAX_BRIGHTNESS               := 1650
-TW_DEFAULT_BRIGHTNESS           := 1300
-TW_DEFAULT_TIME_ZONE            := UTC+1
-TW_DEFAULT_TIME_ZONE_GUISEL     := Europe/Rome
-TW_DEFAULT_TIME_ZONE_GUIOFFSET  := 60
-TW_DEFAULT_TIME_ZONE_GUIDST     := 60
-TW_FRAMERATE                    := 120
-TW_CUSTOM_BATTERY_POS           := 810
-TW_CUSTOM_CLOCK_POS             := 50
-TW_CUSTOM_CPU_POS               := 280
-TW_STATUS_ICONS_ALIGN           := center
-TW_EXCLUDE_DEFAULT_USB_INIT     := true
-TW_NO_SCREEN_BLANK              := true
-TW_EXTRA_LANGUAGES              := false
-TWRP_INCLUDE_LOGCAT             := true
-TARGET_USES_LOGD                := true
-TW_INCLUDE_FB2PNG               := true
-TW_INCLUDE_NTFS_3G              := true
-TW_NO_EXFAT_FUSE                := true
-TW_INCLUDE_RESETPROP            := true
-TW_INCLUDE_LIBRESETPROP         := true
-TW_INCLUDE_REPACKTOOLS          := true
-TW_USE_DMCTL                    := true
-TW_INCLUDE_LPDUMP               := true
-TW_INCLUDE_LPTOOLS              := true
-TW_INCLUDE_FASTBOOTD            := true
-TW_HAS_EDL_MODE                 := true
-TW_EXCLUDE_APEX                 := true
+
+# AERA display
+AERA_INPUT_BLACKLIST            := "hbtp_vm"
+AERA_BRIGHTNESS_PATH            := "/sys/class/backlight/panel0-backlight/brightness"
+AERA_CUSTOM_CPU_TEMP_PATH       := "/sys/class/thermal/thermal_zone28/temp" # CPU-0-0-USR
+AERA_CUSTOM_BATTERY_PATH        := "/sys/class/power_supply/qcom_battery"
+AERA_CUSTOM_BATTERY_POS         := 810
+AERA_CUSTOM_CLOCK_POS           := 50
+AERA_CUSTOM_CPU_POS             := 280
+AERA_STATUS_ICONS_ALIGN         := center
+AERA_UI_ADAPTIVE_RESOLUTION     := true
+AERA_MAX_BRIGHTNESS             := 1650
+AERA_DEFAULT_BRIGHTNESS         := 1300
+AERA_FRAMERATE                  := 120
+AERA_NO_SCREEN_BLANK            := true
+AERA_EXTRA_LANGUAGES            := false
+AERA_DEFAULT_LANGUAGE           := en
+
+# AERA tools
+AERA_EXCLUDE_DEFAULT_USB_INIT   := true
+AERA_INCLUDE_LOGCAT            := true
+TARGET_USES_LOGD               := true
+AERA_INCLUDE_FB2PNG            := true
+AERA_INCLUDE_NTFS_3G           := true
+AERA_NO_EXFAT_FUSE             := true
+AERA_INCLUDE_RESETPROP         := true
+AERA_INCLUDE_LIBRESETPROP      := true
+AERA_INCLUDE_REPACKTOOLS       := true
+AERA_USE_DMCTL                 := true
+AERA_INCLUDE_LPDUMP            := true
+AERA_INCLUDE_LPTOOLS           := true
+AERA_INCLUDE_FASTBOOTD         := true
+AERA_HAS_EDL_MODE              := true
+AERA_EXCLUDE_APEX              := true
+AERA_FORCE_KEYMASTER_VER       := true
 
 # Battery
-TW_USE_LEGACY_BATTERY_SERVICES  := true
+AERA_USE_LEGACY_BATTERY_SERVICES := true
 TARGET_RECOVERY_QCOM_RTC_FIX    := true
 
 # Recovery modules
@@ -246,12 +246,9 @@ RECOVERY_LIBRARY_SOURCE_FILES += \
 FIXED_HAPTICS := true
 
 ifeq ($(FIXED_HAPTICS),true)
-   TW_SUPPORT_INPUT_AIDL_HAPTICS := true
-   TW_SUPPORT_INPUT_AIDL_HAPTICS_FQNAME := "IVibrator/default"
-   TW_SUPPORT_INPUT_AIDL_HAPTICS_FIX_OFF := true
+   AERA_SUPPORT_INPUT_AIDL_HAPTICS := true
+   AERA_SUPPORT_INPUT_AIDL_HAPTICS_FQNAME := "IVibrator/default"
+   AERA_SUPPORT_INPUT_AIDL_HAPTICS_FIX_OFF := true
 else
-   TW_NO_HAPTICS := true
+   AERA_NO_HAPTICS := true
 endif
-
-# Set to 1 to include WLAN features
-OF_ENABLE_WLAN := 1

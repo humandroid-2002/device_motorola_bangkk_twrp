@@ -14,14 +14,14 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit_only.mk)
 # Configure emulated_storage.mk
 $(call inherit-product, $(SRC_TARGET_DIR)/product/emulated_storage.mk)
 
-# Configure twrp common.mk
+# Configure twrp common.mk (AERA keeps the TWRP-based build system)
 $(call inherit-product, vendor/twrp/config/common.mk)
 
 # Inherit from bangkk device
 $(call inherit-product, device/motorola/bangkk/device.mk)
 
-# Inherit from fox
-$(call inherit-product, device/motorola/bangkk/fox.mk)
+# AERA device configuration
+$(call inherit-product, $(LOCAL_PATH)/aera_bangkk.mk)
 
 PRODUCT_ENABLE_UFFD_GC := true
 PRODUCT_DEVICE         := bangkk

@@ -185,19 +185,10 @@ flash_current_recovery() {
         fi
         sleep 1
     fi
-    if [ ! -x /system/bin/fox ]; then
-        my_print "Recovery flash skipped: /system/bin/fox not found"
-        return 1
-    fi
-    my_print "Flashing current recovery..."
-    /system/bin/fox reflash run &>>"$LOG"
-    rc=$?
-    if [ "$rc" -ne 0 ]; then
-        my_print "Recovery flash failed (rc=$rc); reboot cancelled"
-        return 1
-    fi
-    sync
-    my_print "Recovery flashed successfully"
+    # AERA has no self-reflash command (aeracli reports "reflash" as reserved
+    # but unsupported), so there is nothing to flash here. Keep the hook for
+    # compatibility with the RO2RW flow, which reboots to recovery afterwards.
+    my_print "AERA does not support reflashing the current recovery"
     return 0
 }
 abortS() {

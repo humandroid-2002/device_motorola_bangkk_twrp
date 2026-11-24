@@ -57,4 +57,3 @@ PRODUCT_COPY_FILES += $(call find-copy-subdir-files,*.ko,$(LOCAL_PATH)/prebuilt/
 
 PRODUCT_SOONG_NAMESPACES += \
     $(LOCAL_PATH)
-

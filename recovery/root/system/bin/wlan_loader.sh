@@ -7,10 +7,10 @@ SLOT="$(getprop ro.boot.slot_suffix)"
 MODEM="/dev/block/bootdevice/by-name/modem${SLOT}"
 
 log() {
-    echo "[OF-WLAN] $1" >> "$LOG"
+    echo "[AERA-WLAN] $1" >> "$LOG"
 }
 
-setprop sys.fox.wlan.driver 0
+setprop sys.aera.wlan.driver 0
 
 # The modem partition is ext4 and is mounted by init at /firmware. Mount it
 # here too if init lost the race with ueventd.
@@ -89,14 +89,14 @@ done
 
 if [ -e /sys/class/net/wlan0 ]; then
     ifconfig wlan0 up >> "$LOG" 2>&1
-    setprop sys.fox.wlan.driver 1
+    setprop sys.aera.wlan.driver 1
     log "wlan0 is up"
 else
     log "ERROR: wlan0 was not created"
 fi
 
-if [ "$(getprop sys.fox.wlan.supplicant_pending)" = "1" ]; then
-    setprop sys.fox.wlan.supplicant_pending 0
+if [ "$(getprop sys.aera.wlan.supplicant_pending)" = "1" ]; then
+    setprop sys.aera.wlan.supplicant_pending 0
     setprop ctl.start wpa_supplicant
     log "starting wpa_supplicant"
 fi

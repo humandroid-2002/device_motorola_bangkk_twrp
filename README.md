@@ -1,33 +1,3 @@
-## About WLAN & Remote Access
-
-Permanent recovery flashing is required until you are running LineageOS 24.0, as the WLAN kernel module has a considerably large file size.
-
-After connecting to Wi-Fi, use another device (phone or PC) on the same network and open the recovery IP in a browser. Credits to adontoo for implementing this feature.
-
-> **Note:** Do not use Microsoft Edge. Uploading big files will always fail.
-
-| Feature                        | How to use                                                        |
-| -----------------------------: | :---------------------------------------------------------------- |
-| Wireless ADB                   | Connect the phone and PC to the same Wi-Fi, then run `adb connect IP_device:5555`. |
-| Remote Web Access              | **First set or generate a password use fox terminal or adb:** `fox web password --generate` (or `fox web password <your_password>`).<br>**Then enable:** `fox web enable`, or from recovery **Wi-Fi → Apps → Remote Web Access → Enable** (enable fails without a password).<br>**PC browser:** open `http://IP_device:80` and enter the token/password. |
-| TWRP Web File Manager          | **Recovery:** Wi-Fi → Apps → Web File Manager → Start.<br>**PC browser:** open `http://IP_device:8080` to upload/download files. |
-| NAS (SFTP/SMB)                 | **Recovery:** Wi-Fi → Apps → Network Storage (NAS). Enter Type, Host/IP, Port, User, Password and Path/Share, then **Mount** → **Use**. |
-
-### NAS example (Linux PC + Samba)
-
-| Setting                        | Value                                                              |
-| -----------------------------: | :---------------------------------------------------------------- |
-| Type                           | `smb`                                                              |
-| Host/IP                        | PC IP (e.g. `192.168.0.135`)                                       |
-| Share                          | `FoxShare`                                                         |
-| Username                       | PC user                                                            |
-| Password                       | PC password                                                        |
-| Path                           | `FoxShare`                                                         |
-| Port                           | empty / `445` (or `22` for SFTP)                                   |
-| Cache                          | `off` or `data`                                                    |
-
----
-
 ## Custom Recovery device tree for the Motorola Moto G84 5G
 
 The Motorola Moto G84 5G (codenamed "bangkk") is a mid-range smartphone from Motorola.
@@ -101,15 +71,11 @@ This device tree uses a prebuilt kernel extracted from:
 * [x] Flash `vendor.img` from Install Image
 * [x] Flash boot, vendor_boot, dtbo and vbmeta images
 * [x] **High-speed sideloading** via prebuilt binary (parallel XZ/BZ2, direct write, bypasses VAB/COW path)
-* [x] **Auto-reflash recovery** post-ROM flash
+* [ ] **Auto-reflash recovery** post-ROM flash (AERA has no self-reflash command)
 
 ### Storage and connectivity
 
 * [x] **WI-FI**
-* [x] **Wireless ADB** (Port 5555)
-* [x] **Web-UI Dashboard** (Browser access via IP)
-* [x] **NAS Mounting** (SFTP/SMB) for direct backups/flashing
-* [x] **rclone integration** (UPX/LZMA compressed to fit ramdisk)
 * [x] MicroSD storage
 * [x] USB-OTG storage
 * [x] MTP export
@@ -137,6 +103,7 @@ This device tree uses a prebuilt kernel extracted from:
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+#  *  Copyright (C) 2026 The AERA Recovery Project
 #  *  Copyright (C) 2026 The OrangeFox Recovery Project
 #  *
 #  * This program is free software: you can redistribute it and/or modify
@@ -157,6 +124,7 @@ This device tree uses a prebuilt kernel extracted from:
 ## Credits
 
 - [TeamWin](https://github.com/TeamWin) - TWRP device tree generator
+- [AERA Recovery Project](https://github.com/AERA-Recovery) - Recovery UI and build system
 - [OrangeFox](https://gitlab.com/OrangeFox) - OpenSource & Team Developers
 - [adontoo](https://github.com/adontoo) - Web File tranfer
 - [LineageOS](https://github.com/LineageOS) - Kernel modules & continuous device support

@@ -172,6 +172,7 @@ BUILD_ID=$(getprop ro.build.display.id)
 BUILD_DESC=$(getprop ro.build.description)
 
 case "$(echo "$BUILD_ID $BUILD_DESC" | tr '[:upper:]' '[:lower:]')" in
+*aera*) RECOVERY="AERA" ;;
 *orangefox*) RECOVERY="OrangeFox" ;;
 *twrp*) RECOVERY="TWRP" ;;
 esac

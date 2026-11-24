@@ -1,7 +1,14 @@
 #!/system/bin/sh
 
-# Copyright (C) 2026 OrangeFox Recovery Project
+# Copyright (C) 2026 humandroid-2002
 # SPDX-License-Identifier: GPL-3.0-only
+#
+# Called by the AERA recovery core after a ROM flash (see aera_core.cpp:
+# AERA_AFTER_ROM_FLASH_SCRIPT / post_rom_flash_completion.sh).
+#
+# AERA has no "flash current recovery" command (aeracli reports reflash as
+# reserved but unsupported), so this only activates the slot the ROM was
+# written to. Reboot into the new slot from the AERA reboot menu.
 
 LOGMSG() {
     echo "I:$1" >> /tmp/recovery.log;
@@ -22,12 +29,11 @@ case "$CURRENT_SLOT" in
         ;;
 esac
 
-LOGMSG "post_rom_flash_completion: will reflash OrangeFox and activate slot ${NEW_SLOT}"
+LOGMSG "post_rom_flash_completion: activating slot ${NEW_SLOT}"
 
-# The recovery operation is still in progress while this script runs, so
-# calling fox directly here fails with "operation in progress". Defer the
-# exact "Flash current OrangeFox" action until the operation has finished.
-nohup /system/bin/sh -c "sleep 3; /system/bin/fox reflash run; /system/bin/bootctl set-active-boot-slot ${NEW_SLOT}" \
+# The recovery operation is still in progress while this script runs, so the
+# slot switch is deferred until the operation has finished.
+nohup /system/bin/sh -c "sleep 3; /system/bin/bootctl set-active-boot-slot ${NEW_SLOT}" \
     >/tmp/post_rom_flash_completion.log 2>&1 &
 
 exit 0

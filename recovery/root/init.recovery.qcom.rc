@@ -72,9 +72,7 @@ on init
     mkdir /dev/cpuctl/top-app 0755 system system
     start vendor.qti.vibrator
     start health-hal-2-1
-    start fox_nas
     start boot-hal-1-1
-    start fox_dashboard_init
     write /sys/class/backlight/panel0-backlight/brightness 200
     write /sys/class/leds/vibrator/duration 180
     write /sys/class/leds/vibrator/trigger "transient"
@@ -146,18 +144,11 @@ service microhttpd /system/bin/microhttpd
     seclabel u:r:recovery:s0
     task_profiles CPUSET_SP_FOREGROUND
 
-service fox_nas /system/bin/nas_mount.sh
+service aera_nas /system/bin/nas_mount.sh
     user root
     group root
     oneshot
     seclabel u:r:recovery:s0
     task_profiles ServiceCapacityLow
-
-service fox_dashboard_init /system/bin/fox_dashboard_init.sh
-    user root
-    group root
-    oneshot
-    seclabel u:r:recovery:s0
-    task_profiles CPUSET_SP_FOREGROUND
 
 import /init.recovery.wifi.rc

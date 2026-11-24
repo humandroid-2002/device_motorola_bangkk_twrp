@@ -17,7 +17,7 @@ MODULE_SOURCE=""
 LOAD_STACK=""
 
 log() {
-    echo "[OF-MODULES] $1" >> "$LOG"
+    echo "[AERA-MODULES] $1" >> "$LOG"
 }
 
 DONE_MARKER="/tmp/.runatboot.done"

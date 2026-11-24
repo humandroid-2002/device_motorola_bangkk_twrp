@@ -1,16 +1,17 @@
 #
-# OrangeFox build-time variables for bangkk motorola G84.
-# Copyright (C) 2025-2026 OrangeFox Recovery Project
-# Copyright (C) 2026 humandroid-2002
+# AERA Recovery build-time variables for bangkk (Motorola Moto G84 5G).
+# Copyright (C) 2025-2026 humandroid-2002
 # SPDX-License-Identifier: GPL-3.0-only
 
-# callback invoked by orangefox vendor scripts
+FDEVICE="bangkk"
+
+# Local ramdisk callbacks run through AERA_LOCAL_CALLBACK_SCRIPT.
 if [ "$2" = "--first-call" ] && [ -n "$1" ] && [ -d "$1" ]; then
-    _fox_precompress_ramdisk() {
+    _aera_precompress_ramdisk() {
         local ramdisk="$1" upx_bin="" min=32768 dir f sz cb_dir=""
         cb_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null)"
         for c in \
-            "${FOX_VENDOR_PATH:+$FOX_VENDOR_PATH/tools/upx}" \
+            "${AERA_VENDOR_PATH:+$AERA_VENDOR_PATH/tools/upx}" \
             "${ANDROID_BUILD_TOP:+$ANDROID_BUILD_TOP/vendor/recovery/tools/upx}" \
             "$PWD/vendor/recovery/tools/upx" \
             "vendor/recovery/tools/upx" \
@@ -18,7 +19,7 @@ if [ "$2" = "--first-call" ] && [ -n "$1" ] && [ -d "$1" ]; then
             [ -n "$c" ] && [ -x "$c" ] && { upx_bin="$c"; break; }
         done
         if [ ! -x "$upx_bin" ]; then
-            echo "-- upx not found, skipping 64 KB threshold pass"
+            echo "-- upx not found, skipping 32 KB threshold pass"
             return 0
         fi
 
@@ -34,6 +35,8 @@ if [ "$2" = "--first-call" ] && [ -n "$1" ] && [ -d "$1" ]; then
                 chmod 0755 "$f"
                 b=$(basename "$f")
                 if [ "$b" = "recovery" ]; then
+                    # The recovery binary needs libdmctl.so as a DT_NEEDED
+                    # shim (AERA_USE_DMCTL), which upx would otherwise strip.
                     if "$upx_bin" -t "$f" >/dev/null 2>&1; then
                         "$upx_bin" -d "$f" >/dev/null 2>&1 || continue
                         echo "-- decompressed $b for DT_NEEDED patch"
@@ -62,73 +65,32 @@ if [ "$2" = "--first-call" ] && [ -n "$1" ] && [ -d "$1" ]; then
             done
         done
     }
-    _fox_remove_fastbootd() {
-        local ramdisk="$1"
-        rm -f "$ramdisk/system/bin/fastbootd" \
-              "$ramdisk/system/lib64/android.hardware.fastboot@1.0.so" \
-              "$ramdisk/system/lib64/android.hardware.fastboot@1.1.so" \
-              "$ramdisk/system/lib64/fastboot-V1-ndk.so" \
-              "$ramdisk/res/images/fastbootd.png"
+
+    _aera_prune_fonts() {
+        local ramdisk="$1" font_dir="$1/twres/fonts" f
+        [ -d "$font_dir" ] || return 0
+        for f in "$font_dir"/*; do
+            [ -f "$f" ] || continue
+            [ "$(basename "$f")" = "Roboto-Regular.ttf" ] && continue
+            rm -f "$f"
+        done
     }
-    # ICU libs are bind-mounted
-    _fox_remove_icu() {
+
+    # ICU libs are bind-mounted from the cache by /system/bin/mount_rom_icu.sh.
+    _aera_remove_icu() {
         local ramdisk="$1"
         rm -f "$ramdisk/system/lib64/libandroidicu.so" \
               "$ramdisk/system/lib64/libicui18n.so" \
               "$ramdisk/system/lib64/libicuuc.so"
     }
-    _fox_prune_languages() {
-        local ramdisk="$1" f
-        [ -d "$ramdisk/twres/languages" ] || return 0
-        for f in "$ramdisk"/twres/languages/*.xml; do
-            [ -f "$f" ] || continue
-            case "$(basename "$f")" in
-                en.xml|en_*.xml) ;;
-                *) rm -f "$f" ;;
-            esac
-        done
-    }
-    _fox_prune_fonts() {
-        local ramdisk="$1" twres="$1/twres" img="$1/twres/resources/images.xml" cust="$1/twres/pages/customization.xml" f n
-        [ -d "$twres" ] || return 0
-        echo "-- pruning extra fonts from ramdisk"
-        [ -f "$twres/themes/font.xml" ] && sed -i -e 's/GoogleSans/Roboto/g' -e 's/InterDisplay/Roboto/g' -e 's/RobotoSlab/Roboto-Regular/g' "$twres/themes/font.xml"
-        [ -f "$img" ] && sed -i -e 's/EuclidFlex/Roboto/g' -e 's/GoogleSans/Roboto/g' -e 's/FiraCode/Roboto/g' -e 's/InterDisplay/Roboto/g' -e 's/RobotoSlab/Roboto-Regular/g' "$img"
-        [ -f "$twres/splash.xml" ] && sed -i -e 's/EuclidFlex/Roboto/g' -e 's/GoogleSans/Roboto/g' -e 's/FiraCode/Roboto/g' -e 's/InterDisplay/Roboto/g' -e 's/RobotoSlab/Roboto-Regular/g' "$twres/splash.xml"
-        [ -f "$twres/themes/sed/splash.xml" ] && sed -i -e 's/EuclidFlex/Roboto/g' -e 's/InterDisplay/Roboto/g' -e 's/RobotoSlab/Roboto-Regular/g' "$twres/themes/sed/splash.xml"
-        [ -f "$twres/themes/sed/splash_orig.xml" ] && sed -i -e 's/EuclidFlex/Roboto/g' -e 's/InterDisplay/Roboto/g' -e 's/RobotoSlab/Roboto-Regular/g' "$twres/themes/sed/splash_orig.xml"
-        [ -f "$twres/pages/recovery.xml" ] && sed -i 's/GoogleSans/Roboto/g' "$twres/pages/recovery.xml"
-        [ -f "$cust" ] && sed -i -e 's/GoogleSans/Roboto/g' -e 's/RobotoSlab/Roboto-Regular/g' "$cust"
 
-        for f in Amatic Chococooky Exo2-Medium Exo2-Regular EuclidFlex-Medium EuclidFlex-Regular FiraCode-Medium FiraCode-Regular GoogleSans-Medium GoogleSans-Regular InterDisplay-Medium InterDisplay-Regular MILanPro-Medium MILanPro-Regular RobotoSlab; do
-            rm -f "$twres/fonts/$f.ttf"
-            [ -f "$img" ] && sed -i "/$f.ttf/d" "$img"
-        done
-        if [ -f "$cust" ]; then
-            for n in 2 3 4 5 6 7 8 9; do
-                sed -i "/font$n/I,+2 d" "$cust"
-            done
-        fi
-    }
-    _fox_add_web_file_manager() {
-        local ramdisk="$1" theme="$1/twres/pages/wlan.xml" helper
-        helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/tools/patch_web_file_manager.py"
-        [ -f "$theme" ] && [ -f "$helper" ] || return 0
-        echo "-- adding Web File Manager page"
-        python3 "$helper" "$theme" || echo "-- warning: failed to patch wlan.xml"
-    }
-
-    _fox_add_web_file_manager "$1"
-    _fox_remove_fastbootd "$1"
-    _fox_remove_icu "$1"
-    _fox_prune_languages "$1"
-    _fox_precompress_ramdisk "$1"
-    _fox_prune_fonts "$1"
+    _aera_prune_fonts "$1"
+    _aera_remove_icu "$1"
+    _aera_precompress_ramdisk "$1"
     return 0 2>/dev/null || exit 0
 fi
 [ "$2" = "--last-call" ] && { return 0 2>/dev/null || exit 0; }
 
-# dependecies
 clone_if_missing() {
     local REPO="$1"
     local BRANCH="$2"
@@ -143,64 +105,55 @@ clone_if_missing() {
 
 clone_if_missing https://github.com/LineageOS/android_hardware_qcom_bootctrl.git lineage-19.1-caf hardware/qcom-caf/bootctrl
 
-FDEVICE="bangkk"
-
-fox_get_target_device() {
-    local src=""
-
-    if [ -n "$ZSH_VERSION" ]; then
-        src="${(%):-%x}"
-    elif [ -n "$BASH_VERSION" ]; then
-        src="${BASH_SOURCE[0]}"
-    else
-        src="$0"
-    fi
-
-    if echo "$src" | grep -q "$FDEVICE"; then
-        FOX_BUILD_DEVICE="$FDEVICE"
-    elif [ -n "$BASH_VERSION" ] && set | grep BASH_ARGV | grep -q -w "$FDEVICE"; then
-        FOX_BUILD_DEVICE="$FDEVICE"
-    elif echo "$* $0" | grep -q -w "$FDEVICE"; then
-        FOX_BUILD_DEVICE="$FDEVICE"
-    fi
-}
-
-if [ -z "$1" -a -z "$FOX_BUILD_DEVICE" ]; then
-   fox_get_target_device
+# Only export bangkk settings when this file is the one being sourced.
+_aera_src=""
+if [ -n "$ZSH_VERSION" ]; then
+    _aera_src="${(%):-%x}"
+elif [ -n "$BASH_VERSION" ]; then
+    _aera_src="${BASH_SOURCE[0]}"
+else
+    _aera_src="$0"
 fi
 
-if [ "$1" = "$FDEVICE" -o "$FOX_BUILD_DEVICE" = "$FDEVICE" ]; then
+case "$_aera_src" in
+    device/motorola/$FDEVICE/*|*/device/motorola/$FDEVICE/*) AERA_BUILD_DEVICE="$FDEVICE" ;;
+esac
+[ "$1" = "$FDEVICE" ] && AERA_BUILD_DEVICE="$FDEVICE"
+unset _aera_src
+
+if [ "$AERA_BUILD_DEVICE" = "$FDEVICE" ]; then
 
 	# A/B, virtual A/B, recovery
-	export FOX_VIRTUAL_AB_DEVICE=1
-	export FOX_RECOVERY_SYSTEM_PARTITION="/dev/block/mapper/system"
-	export FOX_RECOVERY_VENDOR_PARTITION="/dev/block/mapper/vendor"
+	export AERA_AB_DEVICE=1
+	export AERA_VIRTUAL_AB_DEVICE=1
+	export AERA_RECOVERY_SYSTEM_PARTITION="/dev/block/mapper/system"
+	export AERA_RECOVERY_VENDOR_PARTITION="/dev/block/mapper/vendor"
 
 	# Compression Binaries & Tools
-	export FOX_USE_TAR_BINARY=1
-	export FOX_USE_LZ4_BINARY=1
-	export FOX_USE_SED_BINARY=1
-	export FOX_USE_XZ_UTILS=1
-	export FOX_USE_ZSTD_BINARY=1
-	export FOX_DELETE_AROMAFM=1
-	export FOX_REMOVE_AAPT=1
-	export FOX_USE_BUSYBOX_BINARY=1
-	export FOX_USE_GREP_BINARY=1
-	export FOX_USE_DATE_BINARY=1
-	export FOX_USE_FSCK_EROFS_BINARY=1
-	export FOX_REPLACE_TOOLBOX_GETPROP=1
+	export AERA_USE_TAR_BINARY=1
+	export AERA_USE_LZ4_BINARY=1
+	export AERA_USE_SED_BINARY=1
+	export AERA_USE_XZ_UTILS=1
+	export AERA_USE_ZSTD_BINARY=1
+	export AERA_REMOVE_AAPT=1
+	export AERA_USE_BUSYBOX_BINARY=1
+	export AERA_USE_GREP_BINARY=1
+	export AERA_USE_DATE_BINARY=1
+	export AERA_USE_FSCK_EROFS_BINARY=1
+	export AERA_REPLACE_TOOLBOX_GETPROP=1
 
 	# patchelf
-	export FOX_USE_PATCHELF_BINARY=1
+	export AERA_USE_PATCHELF_BINARY=1
+	# Disabled due recovery size issue
+	export AERA_USE_UPDATED_MAGISKBOOT=0
 
-	# Wlan web UI
-	export export FOX_REMOTE_DASHBOARD=1
+	# Release identity
+	export AERA_PRODUCT_PREFIX=AERA
+	export AERA_BUILD_TYPE=Beta
+	export AERA_BUILD_STATUS=Unofficial
 
-	# Fox Settings
 	export LC_ALL="C"
 	export ALLOW_MISSING_DEPENDENCIES=true
-	export FOX_BUILD_TYPE="Stable"
-	export FOX_MAINTAINER_PATCH_VERSION="1"
 
 	# ccache
 	export USE_CCACHE=1
@@ -215,16 +168,11 @@ if [ "$1" = "$FDEVICE" -o "$FOX_BUILD_DEVICE" = "$FDEVICE" ]; then
     fi
 
     # Local callback registration
-    _fox_vendorsetup_src="${BASH_SOURCE[0]:-$0}"
-    if [ -n "$_fox_vendorsetup_src" ] && [ -f "$_fox_vendorsetup_src" ]; then
-        export FOX_LOCAL_CALLBACK_SCRIPT="$(cd "$(dirname "$_fox_vendorsetup_src")" && pwd)/$(basename "$_fox_vendorsetup_src")"
+    _aera_vendorsetup_src="${BASH_SOURCE[0]:-$0}"
+    if [ -n "$_aera_vendorsetup_src" ] && [ -f "$_aera_vendorsetup_src" ]; then
+        export AERA_LOCAL_CALLBACK_SCRIPT="$(cd "$(dirname "$_aera_vendorsetup_src")" && pwd)/$(basename "$_aera_vendorsetup_src")"
     elif [ -f "device/motorola/${FDEVICE}/vendorsetup.sh" ]; then
-        export FOX_LOCAL_CALLBACK_SCRIPT="$(pwd)/device/motorola/${FDEVICE}/vendorsetup.sh"
+        export AERA_LOCAL_CALLBACK_SCRIPT="$(pwd)/device/motorola/${FDEVICE}/vendorsetup.sh"
     fi
-    unset _fox_vendorsetup_src
-else
-	if [ -z "$FOX_BUILD_DEVICE" -a -z "$BASH_SOURCE" ]; then
-		echo "I: This script requires bash. Not processing the $FDEVICE $(basename $0)"
-	fi
+    unset _aera_vendorsetup_src
 fi
-

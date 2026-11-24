@@ -10,6 +10,8 @@ CACHE_IMG="/firmware/aera_cache.img"
 CACHE_MNT="$ROOT/cache"
 CACHE_LIBS="$CACHE_MNT/icu/lib64"
 ICU_LIBS="libandroidicu.so libicui18n.so libicuuc.so"
+TZDATA_DST="/system/usr/share/zoneinfo/tzdata"
+TZDATA_CACHE="$CACHE_MNT/tzdata/tzdata"
 
 mkdir -p "$ROOT"
 
@@ -151,6 +153,55 @@ bind_icu_from() {
     return 0
 }
 
+bind_tzdata_file() {
+    src="$1"
+    [ -f "$src" ] || return 1
+    mkdir -p "$(dirname "$TZDATA_DST")" 2>/dev/null || return 1
+    created=0
+    if [ ! -e "$TZDATA_DST" ]; then
+        touch "$TZDATA_DST" 2>/dev/null || return 1
+        created=1
+    fi
+    if ! mount -o bind "$src" "$TZDATA_DST" 2>/dev/null; then
+        if ! mount "$src" "$TZDATA_DST" 2>/dev/null; then
+            [ "$created" = "1" ] && rm -f "$TZDATA_DST" 2>/dev/null
+            return 1
+        fi
+    fi
+    log "bind-mounted tzdata from $src"
+    return 0
+}
+
+save_cache_tzdata() {
+    src="$1"
+    [ "$CACHE_WRITABLE" = "1" ] || return 0
+    mkdir -p "$CACHE_MNT/tzdata" >> "$LOG" 2>&1 || return 0
+    cp -f "$src" "$TZDATA_CACHE" >> "$LOG" 2>&1 || return 0
+    log "cached tzdata from $src"
+    return 0
+}
+
+try_bind_tzdata() {
+    mountpoint -q "$TZDATA_DST" && return 0
+    if [ -f "$TZDATA_CACHE" ]; then
+        bind_tzdata_file "$TZDATA_CACHE" && return 0
+    fi
+    for src in \
+        /apex/com.android.tzdata/etc/tz/tzdata \
+        /bootstrap-apex/com.android.tzdata/etc/tz/tzdata \
+        "$ROOT/romsystem/system/usr/share/zoneinfo/tzdata" \
+        "$ROOT/romsystem/usr/share/zoneinfo/tzdata" \
+        /system/usr/share/zoneinfo/tzdata
+    do
+        [ -f "$src" ] || continue
+        if bind_tzdata_file "$src"; then
+            save_cache_tzdata "$src" || true
+            return 0
+        fi
+    done
+    return 1
+}
+
 wait_path() {
     n=0
     while [ ! -e "$1" ] && [ "$n" -lt 30 ]; do
@@ -174,6 +225,7 @@ detect_fs_type() {
 }
 
 setup_cache || true
+try_bind_tzdata || true
 
 for src in "$CACHE_LIBS" /apex/com.android.i18n/lib64 /bootstrap-apex/com.android.i18n/lib64; do
     if bind_icu_from "$src"; then
@@ -221,6 +273,7 @@ for CANDIDATE in "${SLOT}:${SLOT_NUM}" "${OTHER_SLOT}:${OTHER_SLOT_NUM}"; do
             log_err "unknown filesystem for $PART image from lpunpack"
         elif mount -t "$FS_TYPE" -o ro,loop "$SYS_IMG" "$ROOT/romsystem" 2>/dev/null; then
             log "detected $FS_TYPE and mounted $PART image from lpunpack"
+            try_bind_tzdata || true
             for candidate in \
                 "$ROOT/romsystem/system/apex/com.android.i18n.apex" \
                 "$ROOT/romsystem/apex/com.android.i18n.apex"; do
@@ -263,6 +316,7 @@ if [ -z "$APEX" ]; then
         fi
 
         mount -o ro "$SYS_DEV" "$ROOT/romsystem" 2>/dev/null || continue
+        try_bind_tzdata || true
 
         for candidate in \
             "$ROOT/romsystem/system/apex/com.android.i18n.apex" \
@@ -309,6 +363,7 @@ fi
 
 if bind_icu_from "$ROOT/i18n/lib64"; then
     save_cache_libs "$ROOT/i18n/lib64" || true
+    try_bind_tzdata || true
     log "using ROM i18n APEX at $APEX"
     exit 0
 fi

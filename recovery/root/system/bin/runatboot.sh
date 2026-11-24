@@ -5,6 +5,10 @@ VENDOR="/vendor"
 VENDOR_MNT="$VENDOR"
 PREBUILT_MODULES_DIR="/system/etc/prebuilt_modules"
 MODULES_DIR="/tmp/lib/modules"
+WIFI_STAGE_DIR="/tmp/wifi"
+WIFI_STAGED="$WIFI_STAGE_DIR/wpa_supplicant"
+WIFI_LIB="android.hardware.wifi.supplicant-V5-ndk.so"
+WIFI_LIB_STAGED="$WIFI_STAGE_DIR/$WIFI_LIB"
 SLOT="$(getprop ro.boot.slot_suffix)"
 [ -n "$SLOT" ] || SLOT="_a"
 VENDOR_MOUNTED=0
@@ -284,6 +288,27 @@ prepare_prebuilt_modules() {
     return 1
 }
 
+stage_wpa_supplicant() {
+    local src="$VENDOR_MNT/bin/hw/wpa_supplicant"
+    if [ ! -f "$src" ]; then
+        log "wpa_supplicant not found under $VENDOR_MNT"
+        return 1
+    fi
+    mkdir -p "$WIFI_STAGE_DIR" >> "$LOG" 2>&1 || return 1
+    if cp -aL "$src" "$WIFI_STAGED" >> "$LOG" 2>&1; then
+        chmod 0755 "$WIFI_STAGED" >> "$LOG" 2>&1
+        log "Staged wpa_supplicant: $src -> $WIFI_STAGED"
+        if [ -f "$VENDOR_MNT/lib64/$WIFI_LIB" ]; then
+            cp -aL "$VENDOR_MNT/lib64/$WIFI_LIB" "$WIFI_LIB_STAGED" >> "$LOG" 2>&1
+            chmod 0755 "$WIFI_LIB_STAGED" >> "$LOG" 2>&1
+            log "Staged $WIFI_LIB"
+        fi
+        return 0
+    fi
+    log "ERROR: cannot stage wpa_supplicant from $src"
+    return 1
+}
+
 prepare_stock_modules() {
     if ! mountpoint -q "$VENDOR"; then
         log "Mounting $VENDOR..."
@@ -308,6 +333,8 @@ prepare_stock_modules() {
     else
         VENDOR_MNT="$VENDOR"
     fi
+
+    stage_wpa_supplicant || true
 
     if [ -d "$VENDOR_MNT/lib/modules" ]; then
         rm -rf "$MODULES_DIR"
@@ -345,6 +372,25 @@ if [ "$VENDOR_MOUNTED" = "1" ] && mountpoint -q "$VENDOR_MNT"; then
     else
         log "WARNING: cannot unmount $VENDOR_MNT"
     fi
+fi
+
+if [ -f "$WIFI_STAGED" ]; then
+    mkdir -p /system/bin >> "$LOG" 2>&1
+    if cp -aL "$WIFI_STAGED" /system/bin/wpa_supplicant >> "$LOG" 2>&1; then
+        chmod 0755 /system/bin/wpa_supplicant >> "$LOG" 2>&1
+        log "Installed wpa_supplicant -> /system/bin/wpa_supplicant"
+    else
+        log "WARNING: cannot install wpa_supplicant into /system/bin"
+    fi
+else
+    log "No staged wpa_supplicant; keeping the ramdisk copy"
+fi
+
+if [ -f "$WIFI_LIB_STAGED" ]; then
+    mkdir -p /vendor/lib64 >> "$LOG" 2>&1
+    cp -aL "$WIFI_LIB_STAGED" /vendor/lib64/"$WIFI_LIB" >> "$LOG" 2>&1
+    chmod 0755 /vendor/lib64/"$WIFI_LIB" >> "$LOG" 2>&1
+    log "Installed $WIFI_LIB -> /vendor/lib64/$WIFI_LIB"
 fi
 
 ensure_firmware_path() {

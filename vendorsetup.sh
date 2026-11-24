@@ -30,8 +30,9 @@ if [ "$2" = "--first-call" ] && [ -n "$1" ] && [ -d "$1" ]; then
                 [ -f "$f" ] && [ -x "$f" ] || continue
                 sz=$(stat -c %s "$f" 2>/dev/null || echo 0)
                 [ "$sz" -gt "$min" ] || continue
-                file "$f" 2>/dev/null | grep -q "ARM" || continue
-                file "$f" 2>/dev/null | grep -q "ELF" || continue
+                info="$(file "$f" 2>/dev/null)"
+                printf '%s\n' "$info" | grep -q "ELF" || continue
+                printf '%s\n' "$info" | grep -qiE "ARM|aarch64" || continue
                 chmod 0755 "$f"
                 b=$(basename "$f")
                 if [ "$b" = "recovery" ]; then
@@ -76,6 +77,15 @@ if [ "$2" = "--first-call" ] && [ -n "$1" ] && [ -d "$1" ]; then
         done
     }
 
+    _fox_remove_fastbootd() {
+        local ramdisk="$1"
+        rm -f "$ramdisk/system/bin/fastbootd" \
+              "$ramdisk/system/lib64/android.hardware.fastboot@1.0.so" \
+              "$ramdisk/system/lib64/android.hardware.fastboot@1.1.so" \
+              "$ramdisk/system/lib64/fastboot-V1-ndk.so" \
+              "$ramdisk/res/images/fastbootd.png"
+    }
+
     # ICU libs are bind-mounted from the cache by /system/bin/mount_rom_icu.sh.
     _aera_remove_icu() {
         local ramdisk="$1"
@@ -84,7 +94,18 @@ if [ "$2" = "--first-call" ] && [ -n "$1" ] && [ -d "$1" ]; then
               "$ramdisk/system/lib64/libicuuc.so"
     }
 
+    # wpa_supplicant are provided by /system/bin/runatboot.sh 
+    # tzdata are provided by         /system/bin/mount_rom_icu.sh 
+    _aera_remove_tools() {
+              "$ramdisk/system/bin/wpa_supplicant" \
+              "$ramdisk/system/usr/share/zoneinfo/tzdata" \
+              "$ramdisk/sbin/gnused" \
+              "$ramdisk/sbin/gnutar" \  
+    }
+
+    _fox_remove_fastbootd "$1"
     _aera_prune_fonts "$1"
+    _fox_remove_tools "$1"
     _aera_remove_icu "$1"
     _aera_precompress_ramdisk "$1"
     return 0 2>/dev/null || exit 0

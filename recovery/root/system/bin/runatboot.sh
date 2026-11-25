@@ -374,6 +374,8 @@ if [ "$VENDOR_MOUNTED" = "1" ] && mountpoint -q "$VENDOR_MNT"; then
     fi
 fi
 
+[ -x /system/bin/bringup_gpu.sh ] && /system/bin/bringup_gpu.sh || true
+
 if [ -f "$WIFI_STAGED" ]; then
     mkdir -p /system/bin >> "$LOG" 2>&1
     if cp -aL "$WIFI_STAGED" /system/bin/wpa_supplicant >> "$LOG" 2>&1; then

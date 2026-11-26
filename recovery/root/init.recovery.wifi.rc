@@ -1,7 +1,9 @@
 # Wi-Fi / CNSS bring-up for bangkk recovery.
 # wlan.ko stays in /tmp/lib/modules (copied and loaded early by runatboot.sh).
-# pd-mapper starts on boot, like the stock ROM's class core service, so its
-# service map is published by the time the modem looks up wlan_pd.
+# pd-mapper is started after the vendor modules are loaded (see
+# init.recovery.qcom.rc). Starting it on boot races q6_pdr's asynchronous
+# service-locator callback against q6_notifier's PDR notifier registration,
+# leaving the audio APR client unregistered and the sound card absent.
 
 on init
     start vendor.qrtr-ns
@@ -24,7 +26,6 @@ on post-fs-data
 
 on boot
     setprop wifi.interface wlan0
-    start vendor.pd_mapper
     mkdir /dev/socket/wigig 0770 wifi wifi
     mkdir /dev/socket/port-bridge 0750 radio radio
     # RFS tree used by tftp_server to serve firmware to the modem. Requests

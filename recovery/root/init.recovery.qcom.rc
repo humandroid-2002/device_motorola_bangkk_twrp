@@ -104,9 +104,20 @@ on early-boot
     wait /tmp/.runatboot.done 15
 
 on property:twrp.modules.loaded=true
+    # Start the service locator only after the audio modules are loaded:
+    # q6_pdr queues an asynchronous locator lookup at module init and its
+    # callback must find q6_notifier's PDR notifier already registered.
+    start vendor.pd_mapper
     # Load ADSP firmware for PMIC
     wait /sys/kernel/boot_adsp/boot 2
     write /sys/kernel/boot_adsp/boot 1
+    start aera-audio-bringup
+
+service aera-audio-bringup /system/bin/bringup_audio.sh
+    user root
+    group root
+    oneshot
+    seclabel u:r:recovery:s0
 
 on property:twrp.all.users.decrypted=true
     start resize

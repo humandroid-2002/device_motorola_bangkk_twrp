@@ -97,7 +97,7 @@ if [ "$2" = "--first-call" ] && [ -n "$1" ] && [ -d "$1" ]; then
     # wpa_supplicant are provided by /system/bin/runatboot.sh 
     # tzdata are provided by         /system/bin/mount_rom_icu.sh 
     _aera_remove_tools() {
-              "$ramdisk/system/bin/wpa_supplicant" \
+        rm -f "$ramdisk/system/bin/wpa_supplicant" \
               "$ramdisk/system/usr/share/zoneinfo/tzdata" \
               "$ramdisk/sbin/gnused" \
               "$ramdisk/sbin/gnutar" \  

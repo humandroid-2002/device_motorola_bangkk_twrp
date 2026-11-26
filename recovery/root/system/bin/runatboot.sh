@@ -416,7 +416,7 @@ ensure_firmware_path() {
 }
 
 ensure_firmware_path "$VENDOR/firmware" "/firmware"
-ensure_firmware_path "$VENDOR/firmware_mnt" "/firmware_mnt"
+ensure_firmware_path "$VENDOR/firmware_mnt" "/firmware"
 
 load_mod() {
     local mod="$1"

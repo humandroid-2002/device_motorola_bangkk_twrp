@@ -41,6 +41,10 @@ TARGET_RECOVERY_DEVICE_MODULES += \
     display.config@2.0 \
     vendor.display.config@2.0
 
+# Audio
+PRODUCT_PACKAGES += \
+    aera-audio-bridge
+
 # Decrypt
 PRODUCT_PACKAGES += \
     qcom_decrypt \

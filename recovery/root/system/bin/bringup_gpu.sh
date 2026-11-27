@@ -127,7 +127,7 @@ stage_nativewindow() {
     base="$ROMSYS"
     [ -d "$base/system/lib64" ] && base="$base/system"
     failed=0
-    for lib in libnativewindow.so libui.so libbinder.so libbinder_ndk.so libutils.so libc++.so android.hardware.graphics.common@1.1.so; do
+    for lib in libnativewindow.so libui.so libutils.so libc++.so android.hardware.graphics.common@1.1.so; do
         if bind_file "$base/lib64/$lib" "/system/lib64/$lib"; then
             log "bound system/$lib"
         else
@@ -160,14 +160,23 @@ stage_allocator() {
         android.hardware.graphics.mapper@2.0.so \
         android.hardware.graphics.common@1.0.so android.hardware.graphics.common@1.2.so \
         android.hardware.graphics.common-V7-ndk.so \
+        android.hardware.graphics.common-V5-ndk.so \
         vendor.qti.hardware.display.allocator@4.0.so \
         vendor.qti.hardware.display.allocator@3.0.so vendor.qti.hardware.display.mapper@4.0.so \
         vendor.qti.hardware.display.mapper@3.0.so vendor.qti.hardware.display.mapper@2.0.so \
         vendor.qti.hardware.display.mapperextensions@1.0.so \
         vendor.qti.hardware.display.mapperextensions@1.1.so \
         vendor.qti.hardware.display.mapperextensions@1.2.so \
+        vendor.qti.hardware.display.mapperextensions@1.3.so \
         libdisplaydebug.so; do
-        bind_file "$ROMVEN/lib64/$lib" "/vendor/lib64/$lib" >> "$LOG" 2>&1 || loge "missing gralloc $lib"
+        if bind_file "$ROMVEN/lib64/$lib" "/vendor/lib64/$lib" >> "$LOG" 2>&1; then
+            continue
+        fi
+        sysbase="$ROMSYS"
+        [ -d "$sysbase/system/lib64" ] && sysbase="$sysbase/system"
+        if ! bind_file "$sysbase/lib64/$lib" "/vendor/lib64/$lib" >> "$LOG" 2>&1; then
+            loge "missing gralloc $lib"
+        fi
     done
     for lib in android.hardware.graphics.mapper@4.0-impl-qti-display.so \
         android.hardware.graphics.mapper@3.0-impl-qti-display.so gralloc.default.so; do

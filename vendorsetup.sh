@@ -97,8 +97,7 @@ if [ "$2" = "--first-call" ] && [ -n "$1" ] && [ -d "$1" ]; then
     # wpa_supplicant are provided by /system/bin/runatboot.sh 
     # tzdata are provided by         /system/bin/mount_rom_icu.sh 
     _aera_remove_tools() {
-        rm -f "$ramdisk/system/bin/wpa_supplicant" \
-              "$ramdisk/system/usr/share/zoneinfo/tzdata" \
+        rm -f "$ramdisk/system/usr/share/zoneinfo/tzdata" \
               "$ramdisk/sbin/gnused" \
               "$ramdisk/sbin/gnutar" \  
     }
@@ -180,7 +179,8 @@ if [ "$AERA_BUILD_DEVICE" = "$FDEVICE" ]; then
 	export USE_CCACHE=1
 	export CCACHE_EXEC="/usr/bin/ccache"
 	export CCACHE_MAXSIZE="50G"
-	export CCACHE_DIR="/mnt/ccache"
+	export CCACHE_DIR="/home/yama/.ccache"
+	export TMPDIR="/home/yama/.tmp"
 
     if [ $USE_CCACHE = 1 ] && [ ! -d ${CCACHE_DIR} ];
      then

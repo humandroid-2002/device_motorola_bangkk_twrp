@@ -5,8 +5,6 @@ export PATH=/system/bin:/sbin:/vendor/bin
 LOG=/tmp/recovery.log
 TAG=bringup_audio
 ROOT=/tmp/audio_bringup
-ROMVEN="$ROOT/vendor"
-CACHE="$ROOT/cache"
 MARKER="$ROOT/.started"
 DONE="$ROOT/.done"
 
@@ -18,13 +16,10 @@ loge() {
     echo "E:$TAG: $1" >> "$LOG" 2>/dev/null
 }
 
-mkdir -p "$ROOT" "$ROMVEN" "$CACHE" /vendor/lib64 2>/dev/null
+mkdir -p "$ROOT" /vendor/lib64 2>/dev/null
 
 [ -f "$MARKER" ] && exit 0
 : > "$MARKER" 2>/dev/null
-
-SLOT="$(getprop ro.boot.slot_suffix 2>/dev/null)"
-[ -n "$SLOT" ] || SLOT="_a"
 
 wait_path() {
     n=0
@@ -33,64 +28,6 @@ wait_path() {
         n=$((n + 1))
     done
     [ -e "$1" ]
-}
-
-mount_vendor() {
-    mountpoint -q "$ROMVEN" && return 0
-    for dev in \
-        "/dev/block/by-name/vendor${SLOT}" \
-        "/dev/block/bootdevice/by-name/vendor${SLOT}" \
-        "/dev/block/mapper/vendor${SLOT}" \
-        "/dev/block/by-name/vendor" \
-        "/dev/block/bootdevice/by-name/vendor" \
-        "/dev/block/mapper/vendor"
-    do
-        [ -e "$dev" ] || continue
-        for fs in erofs ext4; do
-            if mount -t "$fs" -o ro "$dev" "$ROMVEN" >> "$LOG" 2>&1; then
-                log "mounted ROM vendor from $dev as $fs"
-                return 0
-            fi
-        done
-        if mount -o ro "$dev" "$ROMVEN" >> "$LOG" 2>&1; then
-            log "mounted ROM vendor from $dev"
-            return 0
-        fi
-    done
-    loge "cannot mount ROM vendor"
-    return 1
-}
-
-bind_file() {
-    src="$1"
-    dst="$2"
-    [ -f "$src" ] || return 1
-    cached="$CACHE/${dst##*/}"
-    if [ ! -s "$cached" ]; then
-        rm -f "$cached.tmp" 2>/dev/null || true
-        cp -L "$src" "$cached.tmp" >> "$LOG" 2>&1 || return 1
-        mv -f "$cached.tmp" "$cached" >> "$LOG" 2>&1 || return 1
-    fi
-    if [ ! -e "$dst" ]; then
-        touch "$dst" 2>/dev/null || return 1
-    fi
-    mountpoint -q "$dst" && return 0
-    mount -o bind "$cached" "$dst" >> "$LOG" 2>&1 && return 0
-    return 1
-}
-
-release_staging() {
-    umount "$ROMVEN" >> "$LOG" 2>&1 || umount -l "$ROMVEN" >> "$LOG" 2>&1 || true
-}
-
-stage_tinyalsa() {
-    if bind_file "$ROMVEN/lib64/libtinyalsa.so" \
-        "/vendor/lib64/libtinyalsa.so"; then
-        log "bound libtinyalsa.so from the installed ROM"
-        return 0
-    fi
-    loge "libtinyalsa.so not found on the installed ROM"
-    return 1
 }
 
 audio_modules_ready() {
@@ -122,9 +59,22 @@ wait_card() {
     return 1
 }
 
-if ! wait_path /sys/kernel/boot_adsp/boot 25; then
-    loge "ADSP boot control unavailable"
-fi
+# The boot_adsp node is created by adsp_loader_dlkm and can appear after this
+# service starts. Retry without blocking init/UI: the write happens as soon as
+# the node exists, so ADSP comes online early enough for WLAN too.
+n=0
+booted=0
+while [ "$n" -lt 150 ]; do
+    if [ -e /sys/kernel/boot_adsp/boot ] && \
+        printf '1' > /sys/kernel/boot_adsp/boot 2>/dev/null; then
+        log "ADSP firmware boot requested (retry $n)"
+        booted=1
+        break
+    fi
+    sleep 0.2
+    n=$((n + 1))
+done
+[ "$booted" -eq 1 ] || loge "ADSP boot control unavailable"
 
 if [ ! -f /firmware/image/adsp.mdt ] &&
     [ ! -f /vendor/firmware_mnt/image/adsp.mdt ]; then
@@ -135,13 +85,10 @@ if [ ! -f /vendor/firmware/aw87xxx_acf.bin ]; then
     loge "aw87xxx firmware missing from /vendor/firmware"
 fi
 
-if ! mount_vendor; then
-    loge "audio library staging failed"
-    exit 1
+# libtinyalsa.so is built into the recovery ramdisk; no ROM staging needed.
+if [ ! -f /vendor/lib64/libtinyalsa.so ]; then
+    loge "libtinyalsa.so missing from ramdisk"
 fi
-
-stage_tinyalsa || true
-release_staging
 
 if audio_modules_ready; then
     log "audio kernel modules present"

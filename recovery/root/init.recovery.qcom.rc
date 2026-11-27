@@ -108,9 +108,7 @@ on property:twrp.modules.loaded=true
     # q6_pdr queues an asynchronous locator lookup at module init and its
     # callback must find q6_notifier's PDR notifier already registered.
     start vendor.pd_mapper
-    # Load ADSP firmware for PMIC
-    wait /sys/kernel/boot_adsp/boot 2
-    write /sys/kernel/boot_adsp/boot 1
+    # Audio bringup (ADSP boot and mixer path) is handled by the script.
     start aera-audio-bringup
 
 service aera-audio-bringup /system/bin/bringup_audio.sh
